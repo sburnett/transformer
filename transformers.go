@@ -35,3 +35,7 @@ func MakeMapper(mapper Mapper, numConcurrent int) Transformer {
 		}
 	})
 }
+
+func MakeMapperFunc(mapper MapperFunc, numConcurrent int) Transformer {
+	return MakeMapper(MapperFunc(mapper), numConcurrent)
+}

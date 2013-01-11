@@ -1,4 +1,4 @@
-package transformer
+package key
 
 import (
 	"bytes"
@@ -311,4 +311,34 @@ func TestDecodeInt64(t *testing.T) {
 	checkDecode(-100)
 	checkDecode(math.MaxInt64)
 	checkDecode(math.MinInt64)
+}
+
+func TestEncodeMultiple(t *testing.T) {
+	checkDecode := func(value1 int64, value2 int32, value3 string) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value1, value2, value3); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue1 int64
+		var decodedValue2 int32
+		var decodedValue3 string
+		if err := Read(buffer, &decodedValue1, &decodedValue2, &decodedValue3); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+		if value1 != decodedValue1 {
+			t.Fatalf("Expected: %v, got %v", value1, decodedValue1)
+		}
+		if value2 != decodedValue2 {
+			t.Fatalf("Expected: %v, got %v", value2, decodedValue2)
+		}
+		if value3 != decodedValue3 {
+			t.Fatalf("Expected: %v, got %v", value3, decodedValue3)
+		}
+	}
+	checkDecode(0, 0, "hi")
+	checkDecode(-1, -1, "blah")
+	checkDecode(2, 2, "whatever")
+	checkDecode(-100, -100, "foo")
+	checkDecode(math.MaxInt64, math.MaxInt32, "max")
+	checkDecode(math.MinInt64, math.MinInt32, "min")
 }
