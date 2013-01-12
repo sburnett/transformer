@@ -38,9 +38,11 @@ func readRecords(db *levigo.DB, firstKey, lastKey []byte, recordsChan chan *Leve
 	defer readOpts.Close()
 	it := db.NewIterator(readOpts)
 	if firstKey == nil {
-		firstKey = []byte{}
+		it.SeekToFirst()
+	} else {
+		it.Seek(firstKey)
 	}
-	for it.Seek(firstKey); it.Valid(); it.Next() {
+	for ; it.Valid(); it.Next() {
 		if lastKey == nil && !bytes.HasPrefix(it.Key(), firstKey) {
 			break
 		}
