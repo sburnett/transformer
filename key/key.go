@@ -1,13 +1,16 @@
 // This package encodes tuples of primitives (i.e., strings and integers) into
-// byte strings, preserving the order of the encoded tuples when they are are
-// sorted lexicographically. If a tuple (x1, x2, ..., xn) < (y1, y2, ..., yn),
-// then bytes.Compare(Encode(x1, x2, ..., xn), Encode<y1, y2, ..., yn) < 0.
+// byte strings, preserving the order of the encoded tuples when sorted
+// lexicographically.
+//
+// (x1, x2, ..., xn) < (y1, y2, ..., yn)
+// iff
+// bytes.Compare(Encode(x1, x2, ..., xn), Encode<y1, y2, ..., yn) < 0.
 //
 // We must take special care when encoding primitives since their default binary
 // encodings aren't always lexicographic.
 //
-// We encode byte arrays with terminating null characters, so bytes arrays may
-// not contain embedded nulls.
+// We encode byte arrays and strings with terminating null characters, so bytes
+// arrays and strings may not contain embedded nulls.
 //
 // We encode unsigned integers in big endian order to preserve their order when
 // sorted lexicographically; little endian order doesn't have this property.
@@ -30,6 +33,8 @@ import (
 	"math"
 )
 
+// Read an encoded key from reader and write decoded key components into toRead.
+// The variadic arguments must be pointers to primitives so we may modify them.
 func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 	for _, data := range toRead {
 		switch value := data.(type) {
@@ -117,7 +122,7 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 }
 
 // Decode the given byte array into a series of primitives. The variadic
-// arguments must be pointers to primitives so that we may modify their values.
+// arguments must be pointers to primitives so we may modify their values.
 func Decode(key []byte, toRead ...interface{}) ([]byte, error) {
 	buffer := bytes.NewBuffer(key)
 	err := Read(buffer, toRead...)
@@ -132,6 +137,8 @@ func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
 	return remainder
 }
 
+// Write encoded versions of the variadic parameter to writer.
+// The arguments must be primitve types.
 func Write(writer io.Writer, toWrite ...interface{}) error {
 	for _, data := range toWrite {
 		switch value := data.(type) {
@@ -224,4 +231,9 @@ func EncodeOrDie(toWrite ...interface{}) []byte {
 		panic(err)
 	}
 	return encoded
+}
+
+// Join a set of encoded keys in the provided order.
+func Join(keys ...[]byte) []byte {
+	return bytes.Join(keys, []byte{})
 }
