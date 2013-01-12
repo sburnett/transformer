@@ -349,10 +349,36 @@ func TestDecode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error encoding: %v", err)
 	}
-	if err := Decode(encoded, &actual); err != nil {
+	if _, err := Decode(encoded, &actual); err != nil {
 		t.Fatalf("Error decoding: %v", err)
 	}
 	if expected != actual {
 		t.Fatalf("Expected %v, got %v", expected, actual)
+	}
+}
+
+func TestDecodePartial(t *testing.T) {
+	var actualInt, expectedInt int32 = 0, 10
+	var actualString, expectedString string = "", "hello"
+	encoded, err := Encode(expectedInt, expectedString)
+	if err != nil {
+		t.Fatalf("Error encoding: %v", err)
+	}
+	remainingForString, err := Decode(encoded, &actualInt)
+	if err != nil {
+		t.Fatalf("Error decoding: %v", err)
+	}
+	remainingAfterString, err := Decode(remainingForString, &actualString)
+	if err != nil {
+		t.Fatalf("Error decoding: %v", err)
+	}
+	if expectedInt != actualInt {
+		t.Fatalf("Expected %v, got %v", expectedInt, actualInt)
+	}
+	if expectedString != actualString {
+		t.Fatalf("Expected %v, got %v", expectedString, actualString)
+	}
+	if len(remainingAfterString) > 0 {
+		t.Fatalf("Key not empty after all fields read.")
 	}
 }

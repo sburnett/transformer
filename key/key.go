@@ -118,8 +118,18 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 
 // Decode the given byte array into a series of primitives. The variadic
 // arguments must be pointers to primitives so that we may modify their values.
-func Decode(key []byte, toRead ...interface{}) error {
-	return Read(bytes.NewBuffer(key), toRead...)
+func Decode(key []byte, toRead ...interface{}) ([]byte, error) {
+	buffer := bytes.NewBuffer(key)
+	err := Read(buffer, toRead...)
+	return buffer.Bytes(), err
+}
+
+func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
+	remainder, err := Decode(key, toRead...)
+	if err != nil {
+		panic(err)
+	}
+	return remainder
 }
 
 func Write(writer io.Writer, toWrite ...interface{}) error {
@@ -206,4 +216,12 @@ func Encode(toWrite ...interface{}) ([]byte, error) {
 		return nil, err
 	}
 	return buffer.Bytes(), nil
+}
+
+func EncodeOrDie(toWrite ...interface{}) []byte {
+	encoded, err := Encode(toWrite...)
+	if err != nil {
+		panic(err)
+	}
+	return encoded
 }
