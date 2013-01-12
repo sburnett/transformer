@@ -9,8 +9,9 @@ import (
 type PipelineStage struct {
 	Transformer Transformer
 	InputDb     string
-	InputTable  string
 	OutputDb    string
+	FirstKey	[]byte
+	LastKey		[]byte
 }
 
 var stagesDone *expvar.Int
@@ -24,7 +25,7 @@ func RunPipeline(dbRoot string, stages []PipelineStage, skipStages int) {
 		log.Printf("Running pipeline stage %v", idx)
 		inputDbPath := filepath.Join(dbRoot, stage.InputDb)
 		outputDbPath := filepath.Join(dbRoot, stage.OutputDb)
-		RunTransformer(stage.Transformer, inputDbPath, stage.InputTable, outputDbPath)
+		RunTransformer(stage.Transformer, inputDbPath, outputDbPath, stage.FirstKey, stage.LastKey)
 		stagesDone.Add(1)
 	}
 	log.Printf("Done all pipelines.")

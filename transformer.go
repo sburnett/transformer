@@ -22,15 +22,6 @@ type Transformer interface {
 	Do(inputChan, outputChan chan *LevelDbRecord)
 }
 
-func validateTableName(table []byte) {
-	if len(table) == 0 {
-		log.Fatalf("Invalid table name")
-	}
-	if bytes.Contains(table, []byte("\x00")) {
-		log.Fatalf("Table name %q cannot contain embedded null characters", table)
-	}
-}
-
 var recordsRead, bytesRead, recordsWritten, bytesWritten *expvar.Int
 
 func init() {
@@ -40,17 +31,20 @@ func init() {
 	bytesWritten = expvar.NewInt("BytesWritten")
 }
 
-func readRecords(db *levigo.DB, table []byte, recordsChan chan *LevelDbRecord) {
+func readRecords(db *levigo.DB, firstKey, lastKey []byte, recordsChan chan *LevelDbRecord) {
 	defer close(recordsChan)
-
-	validateTableName(table)
-	tablePrefix := append(table, '\x00')
 
 	readOpts := levigo.NewReadOptions()
 	defer readOpts.Close()
 	it := db.NewIterator(readOpts)
-	for it.Seek(tablePrefix); it.Valid(); it.Next() {
-		if !bytes.HasPrefix(it.Key(), tablePrefix) {
+	if firstKey == nil {
+		firstKey = []byte{}
+	}
+	for it.Seek(firstKey); it.Valid(); it.Next() {
+		if lastKey == nil && !bytes.HasPrefix(it.Key(), firstKey) {
+			break
+		}
+		if lastKey != nil && bytes.Compare(it.Key(), lastKey) > 0 {
 			break
 		}
 		recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
@@ -74,7 +68,13 @@ func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
 	}
 }
 
-func RunTransformer(transformer Transformer, inputDbPath, inputTable, outputDbPath string) {
+// Run a transformer on the given input database, writing any emitted results to
+// an output database. You may read and write to the same database.
+//
+// Only read keys between firstKey and lastKey, inclusive. If firstKey is nil,
+// start at the first key. If lastKey is nil, only read keys that are prefixes
+// of firstKey.  If both firstKey and lastKey are nil, read all keys.
+func RunTransformer(transformer Transformer, inputDbPath, outputDbPath string, firstKey, lastKey []byte) {
 	inputOpts := levigo.NewOptions()
 	inputOpts.SetMaxOpenFiles(128)
 	defer inputOpts.Close()
@@ -102,7 +102,7 @@ func RunTransformer(transformer Transformer, inputDbPath, inputTable, outputDbPa
 	inputChan := make(chan *LevelDbRecord)
 	outputChan := make(chan *LevelDbRecord)
 
-	go readRecords(inputDb, []byte(inputTable), inputChan)
+	go readRecords(inputDb, firstKey, lastKey, inputChan)
 	go writeRecords(outputDb, outputChan)
 
 	transformer.Do(inputChan, outputChan)

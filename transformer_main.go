@@ -10,8 +10,11 @@ import (
 )
 
 func TransformerMain(monitorPrefix string, transformerMap map[string]Transformer) {
+	firstKey := flag.String("first_key", "", "Read from the input leveldb starting at this key. Overridden by --key_prefix.")
+	lastKey := flag.String("last_key", "", "Read from the input leveldb up to and including this key. Overridden by --key_prefix.")
+	keyPrefix := flag.String("key_prefix", "", "Read all keys with this prefix. Overrides firstKey and --last_key.")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s <transform> <input leveldb> <input table> <output leveldb>:\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage of %s <transform> <input leveldb> <output leveldb> <first key> <last key>:\n", os.Args[0])
 		transformerNames := []string{}
 		for name, _ := range transformerMap {
 			transformerNames = append(transformerNames, name)
@@ -21,14 +24,13 @@ func TransformerMain(monitorPrefix string, transformerMap map[string]Transformer
 	}
 	flag.Parse()
 
-	if flag.NArg() != 4 {
+	if flag.NArg() != 3 {
 		flag.Usage()
 		return
 	}
 	transform := flag.Arg(0)
 	inputDbPath := flag.Arg(1)
-	inputTable := flag.Arg(2)
-	outputDbPath := flag.Arg(3)
+	outputDbPath := flag.Arg(2)
 
 	go cube.Run(fmt.Sprintf("%s_%s", monitorPrefix, transform))
 
@@ -37,5 +39,9 @@ func TransformerMain(monitorPrefix string, transformerMap map[string]Transformer
 		flag.Usage()
 		log.Fatalf("Invalid transform.")
 	}
-	RunTransformer(transformer, inputDbPath, inputTable, outputDbPath)
+	if *keyPrefix == "" {
+		RunTransformer(transformer, inputDbPath, outputDbPath, []byte(*firstKey), []byte(*lastKey))
+	} else {
+		RunTransformer(transformer, inputDbPath, outputDbPath, []byte(*keyPrefix), nil)
+	}
 }
