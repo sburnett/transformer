@@ -1,27 +1,28 @@
-// This package encodes tuples of primitives (i.e., strings and integers) into
-// byte strings, preserving the order of the encoded tuples when sorted
-// lexicographically.
-//
-// (x1, x2, ..., xn) < (y1, y2, ..., yn)
-// iff
-// bytes.Compare(Encode(x1, x2, ..., xn), Encode<y1, y2, ..., yn) < 0.
-//
-// We must take special care when encoding primitives since their default binary
-// encodings aren't always lexicographic.
-//
-// We encode byte arrays and strings with terminating null characters, so bytes
-// arrays and strings may not contain embedded nulls.
-//
-// We encode unsigned integers in big endian order to preserve their order when
-// sorted lexicographically; little endian order doesn't have this property.
-// The two-complemenet representation for signed integers doesn't sort properly,
-// so we convert signed integers into unsigned integers by subtracting MinInt32
-// (i.e., adding the absolute value of MinInt32).
-//
-// TODO(sburnett): Add support for floating point numbers. The default
-// representation doesn't sort lexicographically for negative numbers or numbers
-// with negative exponents, so we would need to deconstruct and alter the
-// floating point representation.
+/*
+	This package encodes tuples of primitives (i.e., strings and integers) into
+	byte strings, preserving the order of the encoded tuples when sorted
+	lexicographically.
+    
+	(x1, x2, ..., xn) < (y1, y2, ..., yn) iff bytes.Compare(Encode(x1, x2, ...,
+	xn), Encode<y1, y2, ..., yn) < 0.
+    
+	We must take special care when encoding primitives since their default
+	binary encodings aren't always lexicographic.
+    
+	We encode byte arrays and strings with terminating null characters, so bytes
+	arrays and strings may not contain embedded nulls.
+    
+	We encode unsigned integers in big endian order to preserve their order when
+	sorted lexicographically; little endian order doesn't have this property.
+	The two-complemenet representation for signed integers doesn't sort
+	properly, so we convert signed integers into unsigned integers by
+	subtracting MinInt32 (i.e., adding the absolute value of MinInt32).
+    
+	TODO(sburnett): Add support for floating point numbers. The default
+	representation doesn't sort lexicographically for negative numbers or
+	numbers with negative exponents, so we would need to deconstruct and alter
+	the floating point representation.
+*/
 
 package key
 
