@@ -23,7 +23,6 @@
 	numbers with negative exponents, so we would need to deconstruct and alter
 	the floating point representation.
 */
-
 package key
 
 import (
