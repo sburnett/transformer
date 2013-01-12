@@ -14,7 +14,7 @@
     
 	We encode unsigned integers in big endian order to preserve their order when
 	sorted lexicographically; little endian order doesn't have this property.
-	The two-complemenet representation for signed integers doesn't sort
+	The twos-complement representation for signed integers doesn't sort
 	properly, so we convert signed integers into unsigned integers by
 	subtracting MinInt32 (i.e., adding the absolute value of MinInt32).
     
@@ -137,7 +137,7 @@ func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
 	return remainder
 }
 
-// Write encoded versions of the variadic parameter to writer.
+// Write encoded versions of the variadic parameters to writer.
 // The arguments must be primitve types.
 func Write(writer io.Writer, toWrite ...interface{}) error {
 	for _, data := range toWrite {
