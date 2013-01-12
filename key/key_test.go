@@ -34,18 +34,18 @@ func checkNotLess(t *testing.T, lesser, greater interface{}) {
 	}
 }
 
-func TestEncodeBytes(t *testing.T) {
+func TestWriteBytes(t *testing.T) {
 	checkLess(t, []byte{1}, []byte{2})
 	checkLess(t, []byte{}, []byte{1})
 }
 
-func TestEncodeString(t *testing.T) {
+func TestWriteString(t *testing.T) {
 	checkLess(t, "a", "b")
 	checkLess(t, "", "a")
 	checkLess(t, "a", "ab")
 }
 
-func TestEncodeUint8(t *testing.T) {
+func TestWriteUint8(t *testing.T) {
 	checkLess(t, uint8(0), uint8(1))
 	checkLess(t, uint8(math.MaxUint8-1), uint8(math.MaxUint8))
 	checkLess(t, uint8(math.MaxInt8), uint8(math.MaxUint8))
@@ -55,7 +55,7 @@ func TestEncodeUint8(t *testing.T) {
 	checkNotLess(t, uint8(0), uint8(0))
 }
 
-func TestEncodeInt8(t *testing.T) {
+func TestWriteInt8(t *testing.T) {
 	checkLess(t, int8(0), int8(1))
 	checkLess(t, int8(math.MaxInt8-1), int8(math.MaxInt8))
 	checkLess(t, int8(math.MinInt8), int8(math.MinInt8+1))
@@ -63,7 +63,7 @@ func TestEncodeInt8(t *testing.T) {
 	checkNotLess(t, int8(0), int8(0))
 }
 
-func TestEncodeUint16(t *testing.T) {
+func TestWriteUint16(t *testing.T) {
 	checkLess(t, uint16(0), uint16(1))
 	checkLess(t, uint16(math.MaxUint16-1), uint16(math.MaxUint16))
 	checkLess(t, uint16(math.MaxInt16), uint16(math.MaxUint16))
@@ -73,7 +73,7 @@ func TestEncodeUint16(t *testing.T) {
 	checkNotLess(t, uint16(0), uint16(0))
 }
 
-func TestEncodeInt16(t *testing.T) {
+func TestWriteInt16(t *testing.T) {
 	checkLess(t, int16(0), int16(1))
 	checkLess(t, int16(math.MaxInt16-1), int16(math.MaxInt16))
 	checkLess(t, int16(math.MinInt16), int16(math.MinInt16+1))
@@ -81,7 +81,7 @@ func TestEncodeInt16(t *testing.T) {
 	checkNotLess(t, int16(0), int16(0))
 }
 
-func TestEncodeUint32(t *testing.T) {
+func TestWriteUint32(t *testing.T) {
 	checkLess(t, uint32(0), uint32(1))
 	checkLess(t, uint32(math.MaxUint32-1), uint32(math.MaxUint32))
 	checkLess(t, uint32(math.MaxInt32), uint32(math.MaxUint32))
@@ -91,7 +91,7 @@ func TestEncodeUint32(t *testing.T) {
 	checkNotLess(t, uint32(0), uint32(0))
 }
 
-func TestEncodeInt32(t *testing.T) {
+func TestWriteInt32(t *testing.T) {
 	checkLess(t, int32(0), int32(1))
 	checkLess(t, int32(math.MaxInt32-1), int32(math.MaxInt32))
 	checkLess(t, int32(math.MinInt32), int32(math.MinInt32+1))
@@ -99,7 +99,7 @@ func TestEncodeInt32(t *testing.T) {
 	checkNotLess(t, int32(0), int32(0))
 }
 
-func TestEncodeUint64(t *testing.T) {
+func TestWriteUint64(t *testing.T) {
 	checkLess(t, uint64(0), uint64(1))
 	checkLess(t, uint64(math.MaxUint64-1), uint64(math.MaxUint64))
 	checkLess(t, uint64(math.MaxInt64), uint64(math.MaxUint64))
@@ -109,7 +109,7 @@ func TestEncodeUint64(t *testing.T) {
 	checkNotLess(t, uint64(0), uint64(0))
 }
 
-func TestEncodeInt64(t *testing.T) {
+func TestWriteInt64(t *testing.T) {
 	checkLess(t, int64(0), int64(1))
 	checkLess(t, int64(math.MaxInt64-1), int64(math.MaxInt64))
 	checkLess(t, int64(math.MinInt64), int64(math.MinInt64+1))
@@ -117,7 +117,7 @@ func TestEncodeInt64(t *testing.T) {
 	checkNotLess(t, int64(0), int64(0))
 }
 
-func TestDecodeBytes(t *testing.T) {
+func TestReadBytes(t *testing.T) {
 	checkDecode := func(value []byte) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -135,7 +135,7 @@ func TestDecodeBytes(t *testing.T) {
 	checkDecode([]byte(""))
 }
 
-func TestDecodeString(t *testing.T) {
+func TestReadString(t *testing.T) {
 	checkDecode := func(value string) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -153,7 +153,7 @@ func TestDecodeString(t *testing.T) {
 	checkDecode("")
 }
 
-func TestDecodeUint8(t *testing.T) {
+func TestReadUint8(t *testing.T) {
 	checkDecode := func(value uint8) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -171,7 +171,7 @@ func TestDecodeUint8(t *testing.T) {
 	checkDecode(math.MaxUint8)
 }
 
-func TestDecodeInt8(t *testing.T) {
+func TestReadInt8(t *testing.T) {
 	checkDecode := func(value int8) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -193,7 +193,7 @@ func TestDecodeInt8(t *testing.T) {
 	checkDecode(math.MinInt8)
 }
 
-func TestDecodeUint16(t *testing.T) {
+func TestReadUint16(t *testing.T) {
 	checkDecode := func(value uint16) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -211,7 +211,7 @@ func TestDecodeUint16(t *testing.T) {
 	checkDecode(math.MaxUint16)
 }
 
-func TestDecodeInt16(t *testing.T) {
+func TestReadInt16(t *testing.T) {
 	checkDecode := func(value int16) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -233,7 +233,7 @@ func TestDecodeInt16(t *testing.T) {
 	checkDecode(math.MinInt16)
 }
 
-func TestDecodeUint32(t *testing.T) {
+func TestReadUint32(t *testing.T) {
 	checkDecode := func(value uint32) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -251,7 +251,7 @@ func TestDecodeUint32(t *testing.T) {
 	checkDecode(math.MaxUint32)
 }
 
-func TestDecodeInt32(t *testing.T) {
+func TestReadInt32(t *testing.T) {
 	checkDecode := func(value int32) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -273,7 +273,7 @@ func TestDecodeInt32(t *testing.T) {
 	checkDecode(math.MinInt32)
 }
 
-func TestDecodeUint64(t *testing.T) {
+func TestReadUint64(t *testing.T) {
 	checkDecode := func(value uint64) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -291,7 +291,7 @@ func TestDecodeUint64(t *testing.T) {
 	checkDecode(math.MaxUint64)
 }
 
-func TestDecodeInt64(t *testing.T) {
+func TestReadInt64(t *testing.T) {
 	checkDecode := func(value int64) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value); err != nil {
@@ -313,7 +313,7 @@ func TestDecodeInt64(t *testing.T) {
 	checkDecode(math.MinInt64)
 }
 
-func TestEncodeMultiple(t *testing.T) {
+func TestWriteMultiple(t *testing.T) {
 	checkDecode := func(value1 int64, value2 int32, value3 string) {
 		buffer := bytes.NewBuffer([]byte{})
 		if err := Write(buffer, value1, value2, value3); err != nil {
@@ -341,4 +341,18 @@ func TestEncodeMultiple(t *testing.T) {
 	checkDecode(-100, -100, "foo")
 	checkDecode(math.MaxInt64, math.MaxInt32, "max")
 	checkDecode(math.MinInt64, math.MinInt32, "min")
+}
+
+func TestDecode(t *testing.T) {
+	var actual, expected int32 = 0, 10
+	encoded, err := Encode(expected)
+	if err != nil {
+		t.Fatalf("Error encoding: %v", err)
+	}
+	if err := Decode(encoded, &actual); err != nil {
+		t.Fatalf("Error decoding: %v", err)
+	}
+	if expected != actual {
+		t.Fatalf("Expected %v, got %v", expected, actual)
+	}
 }

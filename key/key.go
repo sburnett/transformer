@@ -87,9 +87,15 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			} else {
 				*value = int64(decoded) - int64(math.MaxUint64-math.MaxInt64-1) - 1
 			}
+		default:
+			return fmt.Errorf("Lexicographic decoding not available for type %T", value)
 		}
 	}
 	return nil
+}
+
+func Decode(key []byte, toRead ...interface{}) error {
+	return Read(bytes.NewBuffer(key), toRead...)
 }
 
 func Write(writer io.Writer, toWrite ...interface{}) error {
@@ -167,4 +173,12 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 		}
 	}
 	return nil
+}
+
+func Encode(toWrite ...interface{}) ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	if err := Write(buffer, toWrite...); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
 }
