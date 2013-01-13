@@ -2,14 +2,18 @@ package transformer
 
 import (
 	"bytes"
+	"container/heap"
 	"expvar"
+	"fmt"
 	"github.com/jmhodges/levigo"
 	"log"
+	"math"
 )
 
 type LevelDbRecord struct {
-	Key   []byte
-	Value []byte
+	Key           []byte
+	Value         []byte
+	DatabaseIndex uint8
 }
 
 type LevelDbRecordSlice []*LevelDbRecord
@@ -19,7 +23,7 @@ func (p LevelDbRecordSlice) Less(i, j int) bool { return bytes.Compare(p[i].Key,
 func (p LevelDbRecordSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Transformer interface {
-	Do(inputChan, outputChan chan *LevelDbRecord)
+	Do(inputChan chan *LevelDbRecord, outputChan ...chan *LevelDbRecord)
 }
 
 var recordsRead, bytesRead, recordsWritten, bytesWritten *expvar.Int
@@ -31,7 +35,7 @@ func init() {
 	bytesWritten = expvar.NewInt("BytesWritten")
 }
 
-func readRecords(db *levigo.DB, firstKey, lastKey []byte, recordsChan chan *LevelDbRecord) {
+func readRecords(db *levigo.DB, databaseIndex uint8, firstKey, lastKey []byte, recordsChan chan *LevelDbRecord) {
 	defer close(recordsChan)
 
 	readOpts := levigo.NewReadOptions()
@@ -58,6 +62,30 @@ func readRecords(db *levigo.DB, firstKey, lastKey []byte, recordsChan chan *Leve
 	}
 }
 
+func demuxInputsSorted(inputChans []chan *LevelDbRecord, outputChan chan *LevelDbRecord) {
+	defer close(outputChan)
+
+	currentRecords := make(PriorityQueue, 0, len(inputChans))
+	readRecord := func(inputChan chan *LevelDbRecord) {
+		if record, ok := <-inputChan; ok {
+			item := &Item{
+				record:   record,
+				channel:  inputChan,
+				priority: Priority{key: record.Key, databaseIndex: record.DatabaseIndex},
+			}
+			heap.Push(&currentRecords, item)
+		}
+	}
+	for _, inputChan := range inputChans {
+		readRecord(inputChan)
+	}
+	for currentRecords.Len() > 0 {
+		item := heap.Pop(&currentRecords).(*Item)
+		outputChan <- item.record
+		readRecord(item.channel)
+	}
+}
+
 func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
 	writeOpts := levigo.NewWriteOptions()
 	defer writeOpts.Close()
@@ -76,37 +104,60 @@ func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
 // Only read keys between firstKey and lastKey, inclusive. If firstKey is nil,
 // start at the first key. If lastKey is nil, only read keys that are prefixes
 // of firstKey.  If both firstKey and lastKey are nil, read all keys.
-func RunTransformer(transformer Transformer, inputDbPath, outputDbPath string, firstKey, lastKey []byte) {
+func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []string, firstKey, lastKey []byte) {
+	if len(inputDbPaths) > math.MaxUint8 {
+		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
+	}
+
 	inputOpts := levigo.NewOptions()
 	inputOpts.SetMaxOpenFiles(128)
 	defer inputOpts.Close()
-	inputDb, err := levigo.Open(inputDbPath, inputOpts)
-	if err != nil {
-		log.Fatalf("Error opening leveldb database %v: %v", inputDbPath, err)
-	}
-	defer inputDb.Close()
-
-	var outputDb *levigo.DB
-	if outputDbPath == inputDbPath {
-		outputDb = inputDb
-	} else {
-		outputOpts := levigo.NewOptions()
-		outputOpts.SetMaxOpenFiles(128)
-		outputOpts.SetCreateIfMissing(true)
-		defer outputOpts.Close()
-		outputDb, err = levigo.Open(outputDbPath, outputOpts)
+	databases := make(map[string]*levigo.DB)
+	for _, inputDbPath := range inputDbPaths {
+		inputDb, err := levigo.Open(inputDbPath, inputOpts)
 		if err != nil {
-			log.Fatalf("Error opening leveldb database %v: %v", outputDbPath, err)
+			log.Fatalf("Error opening leveldb database %v: %v", inputDbPath, err)
 		}
-		defer outputDb.Close()
+		defer inputDb.Close()
+		databases[inputDbPath] = inputDb
+	}
+	outputOpts := levigo.NewOptions()
+	outputOpts.SetMaxOpenFiles(128)
+	outputOpts.SetCreateIfMissing(true)
+	for _, outputDbPath := range outputDbPaths {
+		_, ok := databases[outputDbPath]
+		if !ok {
+			outputDb, err := levigo.Open(outputDbPath, outputOpts)
+			if err != nil {
+				log.Fatalf("Error opening leveldb database %v: %v", outputDbPath, err)
+			}
+			defer outputDb.Close()
+			databases[outputDbPath] = outputDb
+		}
 	}
 
 	inputChan := make(chan *LevelDbRecord)
-	outputChan := make(chan *LevelDbRecord)
+	outputChans := make([]chan *LevelDbRecord, len(outputDbPaths))
+	for i := 0; i < len(outputDbPaths); i++ {
+		outputChans[i] = make(chan *LevelDbRecord)
+	}
 
-	go readRecords(inputDb, firstKey, lastKey, inputChan)
-	go writeRecords(outputDb, outputChan)
+	if len(inputDbPaths) == 1 {
+		go readRecords(databases[inputDbPaths[0]], 0, firstKey, lastKey, inputChan)
+	} else {
+		inputChans := make([]chan *LevelDbRecord, len(inputDbPaths))
+		for idx, inputDbPath := range inputDbPaths {
+			inputChans[idx] = make(chan *LevelDbRecord)
+			go readRecords(databases[inputDbPath], uint8(idx), firstKey, lastKey, inputChans[idx])
+		}
+		go demuxInputsSorted(inputChans, inputChan)
+	}
+	for idx, outputDbPath := range outputDbPaths {
+		go writeRecords(databases[outputDbPath], outputChans[idx])
+	}
 
-	transformer.Do(inputChan, outputChan)
-	close(outputChan)
+	transformer.Do(inputChan, outputChans...)
+	for _, outputChan := range outputChans {
+		close(outputChan)
+	}
 }
