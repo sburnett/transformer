@@ -40,8 +40,8 @@ func TransformerMain(monitorPrefix string, transformerMap map[string]Transformer
 		log.Fatalf("Invalid transform.")
 	}
 	if *keyPrefix == "" {
-		RunTransformer(transformer, []string{inputDbPath}, []string{outputDbPath}, []byte(*firstKey), []byte(*lastKey))
+		RunTransformer(transformer, []string{inputDbPath}, []string{outputDbPath}, []byte(*firstKey), []byte(*lastKey), true)
 	} else {
-		RunTransformer(transformer, []string{inputDbPath}, []string{outputDbPath}, []byte(*keyPrefix), nil)
+		RunTransformer(transformer, []string{inputDbPath}, []string{outputDbPath}, []byte(*keyPrefix), nil, true)
 	}
 }

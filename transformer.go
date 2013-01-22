@@ -22,10 +22,6 @@ func (p LevelDbRecordSlice) Len() int           { return len(p) }
 func (p LevelDbRecordSlice) Less(i, j int) bool { return bytes.Compare(p[i].Key, p[j].Key) < 0 }
 func (p LevelDbRecordSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-type Transformer interface {
-	Do(inputChan chan *LevelDbRecord, outputChan ...chan *LevelDbRecord)
-}
-
 var recordsRead, bytesRead, recordsWritten, bytesWritten *expvar.Int
 
 func init() {
@@ -35,7 +31,7 @@ func init() {
 	bytesWritten = expvar.NewInt("BytesWritten")
 }
 
-func readRecords(db *levigo.DB, databaseIndex uint8, firstKey, lastKey []byte, recordsChan chan *LevelDbRecord) {
+func readRecords(db *levigo.DB, databaseIndex uint8, firstKey, lastKey []byte, recordsChan chan *LevelDbRecord, onlyKeys bool) {
 	defer close(recordsChan)
 
 	readOpts := levigo.NewReadOptions()
@@ -53,9 +49,14 @@ func readRecords(db *levigo.DB, databaseIndex uint8, firstKey, lastKey []byte, r
 		if lastKey != nil && bytes.Compare(it.Key(), lastKey) > 0 {
 			break
 		}
-		recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
 		recordsRead.Add(1)
-		bytesRead.Add(int64(len(it.Key()) + len(it.Value())))
+		if onlyKeys {
+			recordsChan <- &LevelDbRecord{Key: it.Key()}
+			bytesRead.Add(int64(len(it.Key())))
+		} else {
+			recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
+			bytesRead.Add(int64(len(it.Key()) + len(it.Value())))
+		}
 	}
 	if err := it.GetError(); err != nil {
 		log.Fatalf("Error iterating through database: %v", err)
@@ -104,13 +105,14 @@ func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
 // Only read keys between firstKey and lastKey, inclusive. If firstKey is nil,
 // start at the first key. If lastKey is nil, only read keys that are prefixes
 // of firstKey.  If both firstKey and lastKey are nil, read all keys.
-func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []string, firstKey, lastKey []byte) {
+func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []string, firstKey, lastKey []byte, onlyKeys bool) {
 	if len(inputDbPaths) > math.MaxUint8 {
 		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
 	}
 
 	inputOpts := levigo.NewOptions()
 	inputOpts.SetMaxOpenFiles(128)
+	inputOpts.SetCreateIfMissing(len(inputDbPaths) > 1)
 	defer inputOpts.Close()
 	databases := make(map[string]*levigo.DB)
 	for _, inputDbPath := range inputDbPaths {
@@ -143,12 +145,12 @@ func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []strin
 	}
 
 	if len(inputDbPaths) == 1 {
-		go readRecords(databases[inputDbPaths[0]], 0, firstKey, lastKey, inputChan)
+		go readRecords(databases[inputDbPaths[0]], 0, firstKey, lastKey, inputChan, onlyKeys)
 	} else {
 		inputChans := make([]chan *LevelDbRecord, len(inputDbPaths))
 		for idx, inputDbPath := range inputDbPaths {
 			inputChans[idx] = make(chan *LevelDbRecord)
-			go readRecords(databases[inputDbPath], uint8(idx), firstKey, lastKey, inputChans[idx])
+			go readRecords(databases[inputDbPath], uint8(idx), firstKey, lastKey, inputChans[idx], onlyKeys)
 		}
 		go demuxInputsSorted(inputChans, inputChan)
 	}
