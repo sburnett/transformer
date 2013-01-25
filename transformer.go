@@ -87,7 +87,7 @@ func demuxInputsSorted(inputChans []chan *LevelDbRecord, outputChan chan *LevelD
 	}
 }
 
-func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
+func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord, doneChan chan bool) {
 	writeOpts := levigo.NewWriteOptions()
 	defer writeOpts.Close()
 	for record := range recordsChan {
@@ -97,6 +97,7 @@ func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord) {
 		recordsWritten.Add(1)
 		bytesWritten.Add(int64(len(record.Key) + len(record.Value)))
 	}
+	doneChan <- true
 }
 
 // Run a transformer on the given input database, writing any emitted results to
@@ -126,6 +127,7 @@ func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []strin
 	outputOpts := levigo.NewOptions()
 	outputOpts.SetMaxOpenFiles(128)
 	outputOpts.SetCreateIfMissing(true)
+	defer outputOpts.Close()
 	for _, outputDbPath := range outputDbPaths {
 		_, ok := databases[outputDbPath]
 		if !ok {
@@ -154,12 +156,17 @@ func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []strin
 		}
 		go demuxInputsSorted(inputChans, inputChan)
 	}
+	doneChan := make(chan bool)
 	for idx, outputDbPath := range outputDbPaths {
-		go writeRecords(databases[outputDbPath], outputChans[idx])
+		go writeRecords(databases[outputDbPath], outputChans[idx], doneChan)
 	}
 
 	transformer.Do(inputChan, outputChans...)
 	for _, outputChan := range outputChans {
 		close(outputChan)
+	}
+
+	for i := 0; i < len(outputDbPaths); i++ {
+		<-doneChan
 	}
 }
