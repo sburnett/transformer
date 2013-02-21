@@ -28,7 +28,7 @@ func init() {
 func RunPipeline(dbRoot string, stages []PipelineStage, skipStages int) {
 	for idx, stage := range stages[skipStages:] {
 		currentStage.Set(stage.Name)
-		log.Printf("Running pipeline stage %v (%v)", idx + skipStages, stage.Name)
+		log.Printf("Running pipeline stage %v (%v)", idx+skipStages, stage.Name)
 		inputDbPaths := make([]string, len(stage.InputDbs))
 		for idx, inputDb := range stage.InputDbs {
 			inputDbPaths[idx] = filepath.Join(dbRoot, inputDb)

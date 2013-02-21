@@ -107,6 +107,7 @@ func writeRecords(db *levigo.DB, recordsChan chan *LevelDbRecord, doneChan chan 
 // start at the first key. If lastKey is nil, only read keys that are prefixes
 // of firstKey.  If both firstKey and lastKey are nil, read all keys.
 func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []string, firstKey, lastKey []byte, onlyKeys bool) {
+	blockSize = 1 << 22 // 4 MB
 	if len(inputDbPaths) > math.MaxUint8 {
 		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
 	}
@@ -114,6 +115,7 @@ func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []strin
 	inputOpts := levigo.NewOptions()
 	inputOpts.SetMaxOpenFiles(128)
 	inputOpts.SetCreateIfMissing(len(inputDbPaths) > 1)
+	inputOpts.SetBlockSize(blockSize)
 	defer inputOpts.Close()
 	databases := make(map[string]*levigo.DB)
 	for _, inputDbPath := range inputDbPaths {
@@ -127,6 +129,7 @@ func RunTransformer(transformer Transformer, inputDbPaths, outputDbPaths []strin
 	outputOpts := levigo.NewOptions()
 	outputOpts.SetMaxOpenFiles(128)
 	outputOpts.SetCreateIfMissing(true)
+	outputOpts.SetBlockSize(blockSize)
 	defer outputOpts.Close()
 	for _, outputDbPath := range outputDbPaths {
 		_, ok := databases[outputDbPath]
