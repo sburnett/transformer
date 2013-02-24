@@ -8,7 +8,7 @@ import (
 // one of the more specialized transformers when possible since they can
 // parallize computation across multiple cores.
 type Transformer interface {
-	Do(inputChan chan *LevelDbRecord, outputChan ...chan *LevelDbRecord)
+	Do(inputChan, outputChan chan *LevelDbRecord)
 }
 
 // Map each input record to 0 or 1 output records. This is the simplest and most
@@ -65,42 +65,19 @@ type MultipleOutputsGroupDoer interface {
 }
 
 func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
-	return TransformFunc(func(inputChan chan *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
-		doneChan := make(chan bool)
-		for i := 0; i < numConcurrent; i++ {
-			go func() {
-				for inputRecord := range inputChan {
-					outputRecord := mapper.Map(inputRecord)
-					if outputRecord != nil {
-						outputChans[0] <- outputRecord
-					}
-				}
-				doneChan <- true
-			}()
-		}
-		for i := 0; i < numConcurrent; i++ {
-			<-doneChan
-		}
-	})
+	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
+		outputChan <- mapper.Map(inputRecord)
+	}
+	return MakeDoFunc(doFunc, numConcurrent)
 }
 
 func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
-	multiDoer := func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
-		if len(outputChans) != 1 {
-			panic("MakeDoTransformer only accepts one output channel")
-		}
-		doer.Do(inputRecord, outputChans[0])
-	}
-	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoer), numConcurrent)
-}
-
-func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numConcurrent int) Transformer {
-	return TransformFunc(func(inputChan chan *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
+	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
 		doneChan := make(chan bool)
 		for i := 0; i < numConcurrent; i++ {
 			go func() {
 				for record := range inputChan {
-					doer.DoToMultipleOutputs(record, outputChans...)
+					doer.Do(record, outputChan)
 				}
 				doneChan <- true
 			}()
@@ -108,27 +85,45 @@ func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numConcurrent in
 		for i := 0; i < numConcurrent; i++ {
 			<-doneChan
 		}
+		close(outputChan)
 	})
 }
 
-func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
-	multiGroupDoer := func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord) {
-		if len(outputChans) != 1 {
-			panic("MakeGroupDoTransformer only accepts one output channel")
+func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numConcurrent int) Transformer {
+	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
+		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
+		doneChan := make(chan bool)
+		for idx := range outputChans {
+			outputChans[idx] = make(chan *LevelDbRecord)
 		}
-		doer.GroupDo(inputRecords, outputChans[0])
+		for i := 0; i < numOutputs; i++ {
+			go func(idx int) {
+				for record := range outputChans[idx] {
+					record.DatabaseIndex = uint8(idx)
+					outputChan <- record
+				}
+				doneChan <- true
+			}(i)
+		}
+		doer.DoToMultipleOutputs(inputRecord, outputChans...)
+		for _, outputChan := range outputChans {
+			close(outputChan)
+		}
+		for i := 0; i < numOutputs; i++ {
+			<-doneChan
+		}
 	}
-	return MakeMultipleOutputsGroupDoFunc(multiGroupDoer, numConcurrent)
+	return MakeDoFunc(doFunc, numConcurrent)
 }
 
-func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numConcurrent int) Transformer {
-	return TransformFunc(func(inputChan chan *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
+func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
+	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
 		doneChan := make(chan bool)
 		groupedInputsChan := make(chan []*LevelDbRecord)
 		for i := 0; i < numConcurrent; i++ {
 			go func() {
 				for record := range groupedInputsChan {
-					doer.GroupDoToMultipleOutputs(record, outputChans...)
+					doer.GroupDo(record, outputChan)
 				}
 				doneChan <- true
 			}()
@@ -153,10 +148,36 @@ func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numCon
 		for i := 0; i < numConcurrent; i++ {
 			<-doneChan
 		}
+		close(outputChan)
 	})
 }
 
-type TransformFunc func(inputChan chan *LevelDbRecord, outputChans ...chan *LevelDbRecord)
+func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOutputs, numConcurrent int) Transformer {
+	groupDoFunc := func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
+		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
+		doneChan := make(chan bool)
+		for idx := range outputChans {
+			outputChans[idx] = make(chan *LevelDbRecord)
+			go func(idx int) {
+				for record := range outputChans[idx] {
+					record.DatabaseIndex = uint8(idx)
+					outputChan <- record
+				}
+				doneChan <- true
+			}(idx)
+		}
+		doer.GroupDoToMultipleOutputs(inputRecords, outputChans...)
+		for _, outputChan := range outputChans {
+			close(outputChan)
+		}
+		for i := 0; i < numOutputs; i++ {
+			<-doneChan
+		}
+	}
+	return MakeGroupDoFunc(groupDoFunc, numConcurrent)
+}
+
+type TransformFunc func(inputChan, outputChan chan *LevelDbRecord)
 
 type MapFunc func(inputRecord *LevelDbRecord) (outputRecord *LevelDbRecord)
 
@@ -168,8 +189,8 @@ type GroupDoFunc func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRec
 
 type MultipleOutputsGroupDoFunc func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord)
 
-func (transformer TransformFunc) Do(inputChan chan *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
-	transformer(inputChan, outputChans...)
+func (transformer TransformFunc) Do(inputChan, outputChan chan *LevelDbRecord) {
+	transformer(inputChan, outputChan)
 }
 
 func (mapFunc MapFunc) Map(inputRecord *LevelDbRecord) *LevelDbRecord {
@@ -200,14 +221,14 @@ func MakeDoFunc(doFunc func(inputRecord *LevelDbRecord, outputChan chan *LevelDb
 	return MakeDoTransformer(DoFunc(doFunc), numConcurrent)
 }
 
-func MakeMultipleOutputsDoFunc(multiDoFunc func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord), numConcurrent int) Transformer {
-	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoFunc), numConcurrent)
+func MakeMultipleOutputsDoFunc(multiDoFunc func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord), numOutputs, numConcurrent int) Transformer {
+	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoFunc), numOutputs, numConcurrent)
 }
 
 func MakeGroupDoFunc(doFunc func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord), numConcurrent int) Transformer {
 	return MakeGroupDoTransformer(GroupDoFunc(doFunc), numConcurrent)
 }
 
-func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord), numConcurrent int) Transformer {
-	return MakeMultipleOutputsGroupDoTransformer(MultipleOutputsGroupDoFunc(multiGroupDoFunc), numConcurrent)
+func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord), numOutputs, numConcurrent int) Transformer {
+	return MakeMultipleOutputsGroupDoTransformer(MultipleOutputsGroupDoFunc(multiGroupDoFunc), numOutputs, numConcurrent)
 }
