@@ -26,7 +26,6 @@ func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWri
 	if transformer != nil {
 		go func() {
 			transformer.Do(inputChan, outputChan)
-			close(outputChan)
 		}()
 	} else {
 		outputChan = inputChan
