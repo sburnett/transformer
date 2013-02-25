@@ -1,9 +1,11 @@
 package transformer
 
 import (
+	"bytes"
 	"container/heap"
 	"fmt"
 	"math"
+	"sort"
 )
 
 type StoreReader interface {
@@ -12,6 +14,11 @@ type StoreReader interface {
 
 type StoreWriter interface {
 	Write(chan *LevelDbRecord) error
+}
+
+type Datastore interface {
+	StoreReader
+	StoreWriter
 }
 
 type DemuxStoreReader []StoreReader
@@ -95,5 +102,47 @@ func (writers MuxedStoreWriter) Write(inputChan chan *LevelDbRecord) error {
 		}
 	}
 
+	return nil
+}
+
+type ChannelStore chan *LevelDbRecord
+
+func (records ChannelStore) Read(outputChan chan *LevelDbRecord) error {
+	for record := range records {
+		outputChan <- record
+	}
+	close(outputChan)
+	return nil
+}
+
+func (records ChannelStore) Write(inputChan chan *LevelDbRecord) error {
+	for record := range inputChan {
+		records <- record
+	}
+	close(records)
+	return nil
+}
+
+type SliceStore []*LevelDbRecord
+
+type LevelDbRecordSlice []*LevelDbRecord
+
+func (p LevelDbRecordSlice) Len() int           { return len(p) }
+func (p LevelDbRecordSlice) Less(i, j int) bool { return bytes.Compare(p[i].Key, p[j].Key) < 0 }
+func (p LevelDbRecordSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func (records *SliceStore) Read(outputChan chan *LevelDbRecord) error {
+	sort.Sort(LevelDbRecordSlice(*records))
+	for _, record := range *records {
+		outputChan <- record
+	}
+	close(outputChan)
+	return nil
+}
+
+func (records *SliceStore) Write(inputChan chan *LevelDbRecord) error {
+	for record := range inputChan {
+		*records = append(*records, record)
+	}
 	return nil
 }

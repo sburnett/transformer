@@ -12,30 +12,20 @@ func makeLevelDbRecord(key string, value string, databaseIndex uint8) *LevelDbRe
 	}
 }
 
-type ChannelStoreReader chan *LevelDbRecord
-
-func (records ChannelStoreReader) Read(outputChan chan *LevelDbRecord) error {
-	for record := range records {
-		outputChan <- record
-	}
-	close(outputChan)
-	return nil
-}
-
 func ExampleDemuxInputsSorted() {
-	firstChan := ChannelStoreReader(make(chan *LevelDbRecord, 10))
+	firstChan := ChannelStore(make(chan *LevelDbRecord, 10))
 	firstChan <- makeLevelDbRecord("d", "foo0", 0)
 	firstChan <- makeLevelDbRecord("f", "bar0", 0)
 	firstChan <- makeLevelDbRecord("h", "baz0", 0)
 	close(firstChan)
 
-	secondChan := ChannelStoreReader(make(chan *LevelDbRecord, 10))
+	secondChan := ChannelStore(make(chan *LevelDbRecord, 10))
 	secondChan <- makeLevelDbRecord("e", "foo1", 1)
 	secondChan <- makeLevelDbRecord("g", "bar1", 1)
 	secondChan <- makeLevelDbRecord("i", "baz1", 1)
 	close(secondChan)
 
-	thirdChan := ChannelStoreReader(make(chan *LevelDbRecord, 10))
+	thirdChan := ChannelStore(make(chan *LevelDbRecord, 10))
 	thirdChan <- makeLevelDbRecord("a", "foo2", 2)
 	thirdChan <- makeLevelDbRecord("b", "bar2", 2)
 	thirdChan <- makeLevelDbRecord("c", "baz2", 2)
@@ -62,13 +52,13 @@ func ExampleDemuxInputsSorted() {
 }
 
 func ExampleDemuxInputsSorted_duplicateKeys() {
-	firstChan := ChannelStoreReader(make(chan *LevelDbRecord, 10))
+	firstChan := ChannelStore(make(chan *LevelDbRecord, 10))
 	firstChan <- makeLevelDbRecord("a", "foo0", 0)
 	firstChan <- makeLevelDbRecord("b", "bar0", 0)
 	firstChan <- makeLevelDbRecord("c", "baz0", 0)
 	close(firstChan)
 
-	secondChan := ChannelStoreReader(make(chan *LevelDbRecord, 10))
+	secondChan := ChannelStore(make(chan *LevelDbRecord, 10))
 	secondChan <- makeLevelDbRecord("b", "foo1", 1)
 	secondChan <- makeLevelDbRecord("c", "bar1", 1)
 	close(secondChan)
@@ -92,16 +82,6 @@ func ExampleDemuxInputsSorted_duplicateKeys() {
 	// c: bar1
 }
 
-type ChannelStoreWriter chan *LevelDbRecord
-
-func (records ChannelStoreWriter) Write(inputChan chan *LevelDbRecord) error {
-	for record := range inputChan {
-		records <- record
-	}
-	close(records)
-	return nil
-}
-
 func ExampleMuxedStoreWriter() {
 	records := make(chan *LevelDbRecord, 10)
 	records <- makeLevelDbRecord("a", "b", 0)
@@ -110,8 +90,8 @@ func ExampleMuxedStoreWriter() {
 	records <- makeLevelDbRecord("g", "h", 1)
 	close(records)
 
-	firstChan := ChannelStoreWriter(make(chan *LevelDbRecord, 10))
-	secondChan := ChannelStoreWriter(make(chan *LevelDbRecord, 10))
+	firstChan := ChannelStore(make(chan *LevelDbRecord, 10))
+	secondChan := ChannelStore(make(chan *LevelDbRecord, 10))
 
 	writers := []StoreWriter{firstChan, secondChan}
 	err := MuxedStoreWriter(writers).Write(records)
@@ -131,4 +111,28 @@ func ExampleMuxedStoreWriter() {
 	// [0] e: f
 	// [1] c: d
 	// [1] g: h
+}
+
+func ExampleSliceStore() {
+	store := SliceStore([]*LevelDbRecord{})
+	inputChan := make(chan *LevelDbRecord, 10)
+	inputChan <- makeLevelDbRecord("b", "x", 0)
+	inputChan <- makeLevelDbRecord("c", "y", 0)
+	inputChan <- makeLevelDbRecord("a", "z", 0)
+	close(inputChan)
+	outputChan := make(chan *LevelDbRecord, 10)
+	if err := store.Write(inputChan); err != nil {
+		panic(err)
+	}
+	if err := store.Read(outputChan); err != nil {
+		panic(err)
+	}
+	for record := range outputChan {
+		fmt.Printf("[0] %s: %s\n", record.Key, record.Value)
+	}
+
+	// Output:
+	// [0] a: z
+	// [0] b: x
+	// [0] c: y
 }

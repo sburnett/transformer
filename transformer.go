@@ -1,34 +1,39 @@
 package transformer
 
-import (
-	"bytes"
-)
-
 type LevelDbRecord struct {
 	Key           []byte
 	Value         []byte
 	DatabaseIndex uint8
 }
 
-type LevelDbRecordSlice []*LevelDbRecord
-
-func (p LevelDbRecordSlice) Len() int           { return len(p) }
-func (p LevelDbRecordSlice) Less(i, j int) bool { return bytes.Compare(p[i].Key, p[j].Key) < 0 }
-func (p LevelDbRecordSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+// This is the type of general transformations on data stored in LevelDB. Use
+// one of the more specialized transformers when possible since they can
+// parallize computation across multiple cores.
+type Transformer interface {
+	Do(inputChan, outputChan chan *LevelDbRecord)
+}
 
 func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWriter) {
 	inputChan := make(chan *LevelDbRecord)
 	outputChan := make(chan *LevelDbRecord)
-	go func() {
-		if err := reader.Read(inputChan); err != nil {
+	if reader != nil {
+		go func() {
+			if err := reader.Read(inputChan); err != nil {
+				panic(err)
+			}
+		}()
+	}
+	if transformer != nil {
+		go func() {
+			transformer.Do(inputChan, outputChan)
+			close(outputChan)
+		}()
+	} else {
+		outputChan = inputChan
+	}
+	if writer != nil {
+		if err := writer.Write(outputChan); err != nil {
 			panic(err)
 		}
-	}()
-	go func() {
-		transformer.Do(inputChan, outputChan)
-		close(outputChan)
-	}()
-	if err := writer.Write(outputChan); err != nil {
-		panic(err)
 	}
 }

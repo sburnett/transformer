@@ -4,13 +4,6 @@ import (
 	"bytes"
 )
 
-// This is the type of general transformations on data stored in LevelDB. Use
-// one of the more specialized transformers when possible since they can
-// parallize computation across multiple cores.
-type Transformer interface {
-	Do(inputChan, outputChan chan *LevelDbRecord)
-}
-
 // Map each input record to 0 or 1 output records. This is the simplest and most
 // efficient kind of transformer.
 //
