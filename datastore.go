@@ -24,7 +24,7 @@ type Datastore interface {
 type DemuxStoreReader []StoreReader
 
 func NewDemuxStoreReader(readers ...StoreReader) DemuxStoreReader {
-    return DemuxStoreReader(readers)
+	return DemuxStoreReader(readers)
 }
 
 func (readers DemuxStoreReader) Read(outputChan chan *LevelDbRecord) error {
@@ -75,7 +75,7 @@ func (readers DemuxStoreReader) Read(outputChan chan *LevelDbRecord) error {
 type MuxedStoreWriter []StoreWriter
 
 func NewMuxedStoreWriter(writers ...StoreWriter) MuxedStoreWriter {
-    return MuxedStoreWriter(writers)
+	return MuxedStoreWriter(writers)
 }
 
 func (writers MuxedStoreWriter) Write(inputChan chan *LevelDbRecord) error {

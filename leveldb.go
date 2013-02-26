@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"bytes"
 	"expvar"
 	"fmt"
 	"github.com/jmhodges/levigo"
@@ -112,6 +113,7 @@ func ReadAllRecords(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
 	readOpts := levigo.NewReadOptions()
 	defer readOpts.Close()
 	it := db.NewIterator(readOpts)
+	defer it.Close()
 	it.SeekToFirst()
 	for ; it.Valid(); it.Next() {
 		recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
@@ -124,9 +126,67 @@ func ReadAllRecords(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
 	return nil
 }
 
+func ReadRecordsExcludingRanges(excludeRangesDb StoreReader) LevelDbReader {
+	return func(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
+		excludedRanges := make(chan *LevelDbRecord)
+		go excludeRangesDb.Read(excludedRanges)
+
+		currentExcludeRecord := <-excludedRanges
+
+		readOpts := levigo.NewReadOptions()
+		defer readOpts.Close()
+		it := db.NewIterator(readOpts)
+		defer it.Close()
+		it.SeekToFirst()
+		for ; it.Valid(); it.Next() {
+			for currentExcludeRecord != nil && bytes.Compare(it.Key(), currentExcludeRecord.Key) >= 0 && bytes.Compare(currentExcludeRecord.Value, it.Value()) <= 0 {
+				it.Seek(currentExcludeRecord.Value)
+				if it.Valid() && bytes.Compare(it.Value(), currentExcludeRecord.Value) == 0 {
+					it.Next()
+				}
+				currentExcludeRecord = <-excludedRanges
+			}
+			recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
+			recordsRead.Add(1)
+			bytesRead.Add(int64(len(it.Key()) + len(it.Value())))
+		}
+		if err := it.GetError(); err != nil {
+			return fmt.Errorf("Error iterating through database: %v", err)
+		}
+		return nil
+	}
+}
+
 func WriteAllRecords(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
 	writeOpts := levigo.NewWriteOptions()
 	defer writeOpts.Close()
+	for record := range recordsChan {
+		if err := db.Put(writeOpts, record.Key, record.Value); err != nil {
+			return fmt.Errorf("Error writing to database: %v", err)
+		}
+		recordsWritten.Add(1)
+		bytesWritten.Add(int64(len(record.Key) + len(record.Value)))
+	}
+	return nil
+}
+
+func WriteAllRecordsDeletingFirst(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
+	readOpts := levigo.NewReadOptions()
+	defer readOpts.Close()
+	writeOpts := levigo.NewWriteOptions()
+	defer writeOpts.Close()
+	it := db.NewIterator(readOpts)
+	defer it.Close()
+	it.SeekToFirst()
+	for ; it.Valid(); it.Next() {
+		if err := db.Delete(writeOpts, it.Key()); err != nil {
+			return fmt.Errorf("Error clearing keys from database: %v", err)
+		}
+	}
+	if err := it.GetError(); err != nil {
+		return fmt.Errorf("Error iterating through database: %v", err)
+	}
+
 	for record := range recordsChan {
 		if err := db.Put(writeOpts, record.Key, record.Value); err != nil {
 			return fmt.Errorf("Error writing to database: %v", err)
