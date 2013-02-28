@@ -141,13 +141,18 @@ func (store *LevelDbStore) Seek(key []byte) error {
 func (store *LevelDbStore) DeleteAllRecords() error {
 	store.dbOpenLock.Lock()
 	defer store.dbOpenLock.Unlock()
+
+	if store.readOptions == nil && store.writeOptions == nil {
+        panic("You may only call DeleteAllRecords after starting reading or writing")
+	}
+
 	writeOptions := store.writeOptions
-	if writeOptions != nil {
+	if writeOptions == nil {
 		writeOptions = levigo.NewWriteOptions()
 		defer writeOptions.Close()
 	}
 	readOptions := store.readOptions
-	if readOptions != nil {
+	if readOptions == nil {
 		readOptions = levigo.NewReadOptions()
 		defer readOptions.Close()
 	}
