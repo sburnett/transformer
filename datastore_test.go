@@ -261,6 +261,118 @@ func ExampleReadExcludingRanges_empty() {
 	// a b c d
 }
 
+func ExampleReadIncludingRanges() {
+	store := SliceStore{}
+	store.BeginWriting()
+	store.WriteRecord(makeLevelDbRecord("a", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("b", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("c", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("d", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("e", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("f", "a", 0))
+	store.WriteRecord(makeLevelDbRecord("g", "b", 0))
+	store.WriteRecord(makeLevelDbRecord("i", "d", 0))
+	store.WriteRecord(makeLevelDbRecord("k", "f", 0))
+	store.EndWriting()
+
+	includedStore := SliceStore{}
+	includedStore.BeginWriting()
+	includedStore.WriteRecord(makeLevelDbRecord("c", "e", 0))
+	includedStore.WriteRecord(makeLevelDbRecord("h", "j", 0))
+	includedStore.EndWriting()
+
+	includingReader := ReadIncludingRanges(&store, &includedStore)
+	includingReader.BeginReading()
+	for {
+		record, err := includingReader.ReadRecord()
+		if err != nil {
+			panic(err)
+		}
+		if record == nil {
+			break
+		}
+		fmt.Printf("%s ", record.Key)
+	}
+	includingReader.EndReading()
+
+	// Output:
+	// c d e i
+}
+
+func ExampleReadIncludingRanges_empty() {
+	store := SliceStore{}
+	store.BeginWriting()
+	store.WriteRecord(makeLevelDbRecord("a", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("b", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("c", "z", 0))
+	store.EndWriting()
+
+	includedStore := SliceStore{}
+	includedStore.BeginWriting()
+	includedStore.EndWriting()
+
+	includingReader := ReadIncludingRanges(&store, &includedStore)
+	includingReader.BeginReading()
+	for {
+		record, err := includingReader.ReadRecord()
+		if err != nil {
+			panic(err)
+		}
+		if record == nil {
+			break
+		}
+		fmt.Printf("%s ", record.Key)
+	}
+	includingReader.EndReading()
+
+	fmt.Printf("End of output\n")
+
+	// Output:
+	// End of output
+}
+
+func ExampleReadIncludingPrefixes() {
+	store := SliceStore{}
+	store.BeginWriting()
+	store.WriteRecord(makeLevelDbRecord("aaa", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("aab", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("abc", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("acc", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("baa", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("bac", "a", 0))
+	store.WriteRecord(makeLevelDbRecord("bbb", "b", 0))
+	store.WriteRecord(makeLevelDbRecord("dab", "l", 0))
+	store.EndWriting()
+
+	includedStore := SliceStore{}
+	includedStore.BeginWriting()
+	includedStore.WriteRecord(makeLevelDbRecord("aa", "", 0))
+	includedStore.WriteRecord(makeLevelDbRecord("b", "", 0))
+	includedStore.WriteRecord(makeLevelDbRecord("c", "", 0))
+	includedStore.EndWriting()
+
+	includingReader := ReadIncludingPrefixes(&store, &includedStore)
+	includingReader.BeginReading()
+	for {
+		record, err := includingReader.ReadRecord()
+		if err != nil {
+			panic(err)
+		}
+		if record == nil {
+			break
+		}
+		fmt.Printf("%s\n", record.Key)
+	}
+	includingReader.EndReading()
+
+	// Output:
+	// aaa
+	// aab
+	// baa
+	// bac
+	// bbb
+}
+
 func ExampleSliceStore() {
 	store := SliceStore{}
 	store.BeginWriting()

@@ -231,6 +231,139 @@ func (store *StoreReaderExcludeRanges) EndReading() error {
 	return nil
 }
 
+type StoreReaderIncludeRanges struct {
+	reader                StoreSeeker
+	includedReader        StoreReader
+	currentIncludedRecord *LevelDbRecord
+}
+
+func ReadIncludingRanges(reader StoreSeeker, includedReader StoreReader) *StoreReaderIncludeRanges {
+	return &StoreReaderIncludeRanges{
+		reader:         reader,
+		includedReader: includedReader,
+	}
+}
+
+func (store *StoreReaderIncludeRanges) BeginReading() error {
+	if err := store.reader.BeginReading(); err != nil {
+		return err
+	}
+	if err := store.includedReader.BeginReading(); err != nil {
+		return err
+	}
+	currentIncludedRecord, err := store.includedReader.ReadRecord()
+	if err != nil {
+		return err
+	}
+	store.currentIncludedRecord = currentIncludedRecord
+	return nil
+}
+
+func (store *StoreReaderIncludeRanges) ReadRecord() (*LevelDbRecord, error) {
+	currentRecord, err := store.reader.ReadRecord()
+	if currentRecord == nil || err != nil {
+		return nil, err
+	}
+	for store.currentIncludedRecord != nil && (bytes.Compare(currentRecord.Key, store.currentIncludedRecord.Key) < 0 || bytes.Compare(currentRecord.Key, store.currentIncludedRecord.Value) > 0) {
+		if bytes.Compare(currentRecord.Key, store.currentIncludedRecord.Key) < 0 {
+			seeks.Add(1)
+			store.reader.Seek(store.currentIncludedRecord.Key)
+			currentRecord, err = store.reader.ReadRecord()
+			if currentRecord == nil || err != nil {
+				return nil, err
+			}
+		}
+		if bytes.Compare(currentRecord.Key, store.currentIncludedRecord.Value) > 0 {
+			currentIncludedRecord, err := store.includedReader.ReadRecord()
+			if err != nil {
+				return nil, err
+			}
+			store.currentIncludedRecord = currentIncludedRecord
+		}
+	}
+	if store.currentIncludedRecord == nil {
+		return nil, nil
+	}
+	return currentRecord, nil
+}
+
+func (store *StoreReaderIncludeRanges) EndReading() error {
+	if err := store.reader.EndReading(); err != nil {
+		return err
+	}
+	if err := store.includedReader.EndReading(); err != nil {
+		return err
+	}
+	return nil
+}
+
+type StoreReaderIncludePrefixes struct {
+	reader                StoreSeeker
+	includedReader        StoreReader
+	currentIncludedRecord *LevelDbRecord
+}
+
+func ReadIncludingPrefixes(reader StoreSeeker, includedReader StoreReader) *StoreReaderIncludePrefixes {
+	return &StoreReaderIncludePrefixes{
+		reader:         reader,
+		includedReader: includedReader,
+	}
+}
+
+func (store *StoreReaderIncludePrefixes) BeginReading() error {
+	if err := store.reader.BeginReading(); err != nil {
+		return err
+	}
+	if err := store.includedReader.BeginReading(); err != nil {
+		return err
+	}
+	currentIncludedRecord, err := store.includedReader.ReadRecord()
+	if err != nil {
+		return err
+	}
+	store.currentIncludedRecord = currentIncludedRecord
+	return nil
+}
+
+func (store *StoreReaderIncludePrefixes) ReadRecord() (*LevelDbRecord, error) {
+	currentRecord, err := store.reader.ReadRecord()
+	if currentRecord == nil || err != nil {
+		return nil, err
+	}
+	for store.currentIncludedRecord != nil && !bytes.HasPrefix(currentRecord.Key, store.currentIncludedRecord.Key) {
+		comparison := bytes.Compare(currentRecord.Key, store.currentIncludedRecord.Key)
+		switch {
+		case comparison < 0:
+			seeks.Add(1)
+			store.reader.Seek(store.currentIncludedRecord.Key)
+			currentRecord, err = store.reader.ReadRecord()
+			if currentRecord == nil || err != nil {
+				return nil, err
+			}
+		case comparison > 0:
+			currentIncludedRecord, err := store.includedReader.ReadRecord()
+			if err != nil {
+				return nil, err
+			}
+			store.currentIncludedRecord = currentIncludedRecord
+		}
+	}
+	if store.currentIncludedRecord == nil {
+		return nil, nil
+	}
+	return currentRecord, nil
+}
+
+func (store *StoreReaderIncludePrefixes) EndReading() error {
+	if err := store.reader.EndReading(); err != nil {
+		return err
+	}
+	if err := store.includedReader.EndReading(); err != nil {
+		return err
+	}
+	return nil
+}
+
 type SliceStore struct {
 	records []*LevelDbRecord
 	cursor  int
