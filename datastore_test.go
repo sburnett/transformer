@@ -230,6 +230,37 @@ func ExampleReadExcludingRanges() {
 	// a b f g j k
 }
 
+func ExampleReadExcludingRanges_empty() {
+	store := SliceStore{}
+	store.BeginWriting()
+	store.WriteRecord(makeLevelDbRecord("a", "x", 0))
+	store.WriteRecord(makeLevelDbRecord("b", "y", 0))
+	store.WriteRecord(makeLevelDbRecord("c", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("d", "y", 0))
+	store.EndWriting()
+
+	excludedStore := SliceStore{}
+	excludedStore.BeginWriting()
+	excludedStore.EndWriting()
+
+	excludingReader := ReadExcludingRanges(&store, &excludedStore)
+	excludingReader.BeginReading()
+	for {
+		record, err := excludingReader.ReadRecord()
+		if err != nil {
+			panic(err)
+		}
+		if record == nil {
+			break
+		}
+		fmt.Printf("%s ", record.Key)
+	}
+	excludingReader.EndReading()
+
+	// Output:
+	// a b c d
+}
+
 func ExampleSliceStore() {
 	store := SliceStore{}
 	store.BeginWriting()
