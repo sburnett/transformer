@@ -47,7 +47,9 @@ func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWri
 		}()
 	} else {
 		outputChan = inputChan
-		transformerDone <- true
+		go func() {
+			transformerDone <- true
+		}()
 	}
 
 	if writer != nil {
