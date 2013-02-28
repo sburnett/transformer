@@ -221,6 +221,10 @@ func (store *StoreReaderExcludeRanges) ReadRecord() (*LevelDbRecord, error) {
 	return currentRecord, nil
 }
 
+func (store *StoreReaderExcludeRanges) Seek(key []byte) error {
+	return store.reader.Seek(key)
+}
+
 func (store *StoreReaderExcludeRanges) EndReading() error {
 	if err := store.reader.EndReading(); err != nil {
 		return err
@@ -285,6 +289,10 @@ func (store *StoreReaderIncludeRanges) ReadRecord() (*LevelDbRecord, error) {
 		return nil, nil
 	}
 	return currentRecord, nil
+}
+
+func (store *StoreReaderIncludeRanges) Seek(key []byte) error {
+	return store.reader.Seek(key)
 }
 
 func (store *StoreReaderIncludeRanges) EndReading() error {
@@ -352,6 +360,10 @@ func (store *StoreReaderIncludePrefixes) ReadRecord() (*LevelDbRecord, error) {
 		return nil, nil
 	}
 	return currentRecord, nil
+}
+
+func (store *StoreReaderIncludePrefixes) Seek(key []byte) error {
+	return store.reader.Seek(key)
 }
 
 func (store *StoreReaderIncludePrefixes) EndReading() error {
