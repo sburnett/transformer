@@ -8,13 +8,14 @@ import (
 	"sync"
 )
 
-var recordsRead, bytesRead, recordsWritten, bytesWritten *expvar.Int
+var recordsRead, bytesRead, recordsWritten, bytesWritten, seeks *expvar.Int
 
 func init() {
 	recordsRead = expvar.NewInt("RecordsRead")
 	recordsWritten = expvar.NewInt("RecordsWritten")
 	bytesRead = expvar.NewInt("BytesRead")
 	bytesWritten = expvar.NewInt("BytesWritten")
+	seeks = expvar.NewInt("Seeks")
 }
 
 type LevelDbStore struct {
@@ -139,7 +140,8 @@ func ReadRecordsExcludingRanges(excludeRangesDb StoreReader) LevelDbReader {
 		defer it.Close()
 		it.SeekToFirst()
 		for ; it.Valid(); it.Next() {
-			for currentExcludeRecord != nil && bytes.Compare(it.Key(), currentExcludeRecord.Key) >= 0 && bytes.Compare(currentExcludeRecord.Value, it.Value()) <= 0 {
+			for currentExcludeRecord != nil && bytes.Compare(it.Key(), currentExcludeRecord.Key) >= 0 && bytes.Compare(it.Value(), currentExcludeRecord.Value) <= 0 {
+				seeks.Add(1)
 				it.Seek(currentExcludeRecord.Value)
 				if it.Valid() && bytes.Compare(it.Value(), currentExcludeRecord.Value) == 0 {
 					it.Next()
