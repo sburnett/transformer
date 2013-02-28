@@ -13,7 +13,7 @@ type Priority struct {
 // An Item is something we manage in a priority queue.
 type Item struct {
 	record   *LevelDbRecord
-	channel  chan *LevelDbRecord
+	reader   StoreReader
 	priority Priority // The priority of the item in the queue.
 	// The index is needed by changePriority and is maintained by the heap.Interface methods.
 	index int // The index of the item in the heap.

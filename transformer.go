@@ -16,23 +16,53 @@ type Transformer interface {
 func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWriter) {
 	inputChan := make(chan *LevelDbRecord)
 	outputChan := make(chan *LevelDbRecord)
+
 	if reader != nil {
 		go func() {
-			if err := reader.Read(inputChan); err != nil {
+			if err := reader.BeginReading(); err != nil {
 				panic(err)
 			}
+			for {
+				record, err := reader.ReadRecord()
+				if err != nil {
+					panic(err)
+				}
+				if record == nil {
+					break
+				}
+				inputChan <- record
+			}
+			if err := reader.EndReading(); err != nil {
+				panic(err)
+			}
+			close(inputChan)
 		}()
 	}
+
+	transformerDone := make(chan bool)
 	if transformer != nil {
 		go func() {
 			transformer.Do(inputChan, outputChan)
+			transformerDone <- true
 		}()
 	} else {
 		outputChan = inputChan
+		transformerDone <- true
 	}
+
 	if writer != nil {
-		if err := writer.Write(outputChan); err != nil {
+		if err := writer.BeginWriting(); err != nil {
+			panic(err)
+		}
+		for record := range outputChan {
+			if err := writer.WriteRecord(record); err != nil {
+				panic(err)
+			}
+		}
+		if err := writer.EndWriting(); err != nil {
 			panic(err)
 		}
 	}
+
+	<-transformerDone
 }

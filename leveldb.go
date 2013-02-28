@@ -1,7 +1,6 @@
 package transformer
 
 import (
-	"bytes"
 	"expvar"
 	"fmt"
 	"github.com/jmhodges/levigo"
@@ -19,29 +18,23 @@ func init() {
 }
 
 type LevelDbStore struct {
-	recordReader LevelDbReader
-	recordWriter LevelDbWriter
-
-	dbPath                         string
-	dbOpenLock                     sync.Mutex
-	openForReading, openForWriting bool
-	db                             *levigo.DB
-	dbOpts                         *levigo.Options
+	dbPath       string
+	dbOpenLock   sync.Mutex
+	readIterator *levigo.Iterator
+	readOptions  *levigo.ReadOptions
+	writeOptions *levigo.WriteOptions
+	db           *levigo.DB
+	dbOpts       *levigo.Options
 }
 
-type LevelDbReader func(recordsChan chan *LevelDbRecord, db *levigo.DB) error
-type LevelDbWriter func(recordsChan chan *LevelDbRecord, db *levigo.DB) error
-
-func NewLevelDbStore(dbPath string, recordReader LevelDbReader, recordWriter LevelDbWriter) *LevelDbStore {
+func NewLevelDbStore(dbPath string) *LevelDbStore {
 	return &LevelDbStore{
-		dbPath:       dbPath,
-		recordReader: recordReader,
-		recordWriter: recordWriter,
+		dbPath: dbPath,
 	}
 }
 
 func (store *LevelDbStore) openDatabase() error {
-	if store.openForReading || store.openForWriting {
+	if store.readOptions != nil || store.writeOptions != nil {
 		return nil
 	}
 	dbOpts := levigo.NewOptions()
@@ -59,142 +52,115 @@ func (store *LevelDbStore) openDatabase() error {
 }
 
 func (store *LevelDbStore) closeDatabase() {
-	if store.openForReading && store.openForWriting {
+	if store.readOptions != nil && store.writeOptions != nil {
 		return
 	}
 	store.db.Close()
 	store.dbOpts.Close()
 }
 
-func (store *LevelDbStore) Read(recordsChan chan *LevelDbRecord) error {
-	defer close(recordsChan)
-
+func (store *LevelDbStore) BeginReading() error {
 	store.dbOpenLock.Lock()
-	if store.openForReading {
+	defer store.dbOpenLock.Unlock()
+	if store.readOptions != nil {
 		panic("Only one routine may read from a LevelDB at a time.")
 	}
 	if err := store.openDatabase(); err != nil {
-		store.dbOpenLock.Unlock()
 		return err
 	}
-	store.openForReading = true
-	store.dbOpenLock.Unlock()
-	defer func() {
-		store.dbOpenLock.Lock()
-		store.closeDatabase()
-		store.openForReading = false
-		store.dbOpenLock.Unlock()
-	}()
-
-	return store.recordReader(recordsChan, store.db)
+	store.readOptions = levigo.NewReadOptions()
+	store.readIterator = store.db.NewIterator(store.readOptions)
+	store.readIterator.SeekToFirst()
+	return nil
 }
 
-func (store *LevelDbStore) Write(recordsChan chan *LevelDbRecord) error {
+func (store *LevelDbStore) ReadRecord() (*LevelDbRecord, error) {
+	if !store.readIterator.Valid() {
+		return nil, store.readIterator.GetError()
+	}
+
+	record := &LevelDbRecord{
+		Key:   store.readIterator.Key(),
+		Value: store.readIterator.Value(),
+	}
+	recordsRead.Add(1)
+	bytesRead.Add(int64(len(record.Key) + len(record.Value)))
+	store.readIterator.Next()
+	return record, nil
+}
+
+func (store *LevelDbStore) EndReading() error {
 	store.dbOpenLock.Lock()
-	if store.openForWriting {
+	defer store.dbOpenLock.Unlock()
+	store.readOptions.Close()
+	store.readIterator.Close()
+	store.closeDatabase()
+	store.readOptions = nil
+	return nil
+}
+
+func (store *LevelDbStore) BeginWriting() error {
+	store.dbOpenLock.Lock()
+	defer store.dbOpenLock.Unlock()
+	if store.writeOptions != nil {
 		panic("Only one routine may write to a LevelDB at a time.")
 	}
 	if err := store.openDatabase(); err != nil {
-		store.dbOpenLock.Unlock()
 		return err
 	}
-	store.openForWriting = true
-	store.dbOpenLock.Unlock()
-	defer func() {
-		store.dbOpenLock.Lock()
-		store.closeDatabase()
-		store.openForWriting = false
-		store.dbOpenLock.Unlock()
-	}()
-
-	return store.recordWriter(recordsChan, store.db)
-}
-
-func ReadAllRecords(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
-	readOpts := levigo.NewReadOptions()
-	defer readOpts.Close()
-	it := db.NewIterator(readOpts)
-	defer it.Close()
-	it.SeekToFirst()
-	for ; it.Valid(); it.Next() {
-		recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
-		recordsRead.Add(1)
-		bytesRead.Add(int64(len(it.Key()) + len(it.Value())))
-	}
-	if err := it.GetError(); err != nil {
-		return fmt.Errorf("Error iterating through database: %v", err)
-	}
+	store.writeOptions = levigo.NewWriteOptions()
 	return nil
 }
 
-func ReadRecordsExcludingRanges(excludeRangesDb StoreReader) LevelDbReader {
-	return func(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
-		excludedRanges := make(chan *LevelDbRecord)
-		go excludeRangesDb.Read(excludedRanges)
-
-		currentExcludeRecord := <-excludedRanges
-
-		readOpts := levigo.NewReadOptions()
-		defer readOpts.Close()
-		it := db.NewIterator(readOpts)
-		defer it.Close()
-		it.SeekToFirst()
-		for ; it.Valid(); it.Next() {
-			for currentExcludeRecord != nil && bytes.Compare(it.Key(), currentExcludeRecord.Key) >= 0 && bytes.Compare(it.Value(), currentExcludeRecord.Value) <= 0 {
-				seeks.Add(1)
-				it.Seek(currentExcludeRecord.Value)
-				if it.Valid() && bytes.Compare(it.Value(), currentExcludeRecord.Value) == 0 {
-					it.Next()
-				}
-				currentExcludeRecord = <-excludedRanges
-			}
-			recordsChan <- &LevelDbRecord{Key: it.Key(), Value: it.Value()}
-			recordsRead.Add(1)
-			bytesRead.Add(int64(len(it.Key()) + len(it.Value())))
-		}
-		if err := it.GetError(); err != nil {
-			return fmt.Errorf("Error iterating through database: %v", err)
-		}
-		return nil
+func (store *LevelDbStore) WriteRecord(record *LevelDbRecord) error {
+	if err := store.db.Put(store.writeOptions, record.Key, record.Value); err != nil {
+		return fmt.Errorf("Error writing to database: %v", err)
 	}
-}
-
-func WriteAllRecords(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
-	writeOpts := levigo.NewWriteOptions()
-	defer writeOpts.Close()
-	for record := range recordsChan {
-		if err := db.Put(writeOpts, record.Key, record.Value); err != nil {
-			return fmt.Errorf("Error writing to database: %v", err)
-		}
-		recordsWritten.Add(1)
-		bytesWritten.Add(int64(len(record.Key) + len(record.Value)))
-	}
+	recordsWritten.Add(1)
+	bytesWritten.Add(int64(len(record.Key) + len(record.Value)))
 	return nil
 }
 
-func WriteAllRecordsDeletingFirst(recordsChan chan *LevelDbRecord, db *levigo.DB) error {
-	readOpts := levigo.NewReadOptions()
-	defer readOpts.Close()
-	writeOpts := levigo.NewWriteOptions()
-	defer writeOpts.Close()
-	it := db.NewIterator(readOpts)
+func (store *LevelDbStore) EndWriting() error {
+	store.dbOpenLock.Lock()
+	defer store.dbOpenLock.Unlock()
+	store.writeOptions.Close()
+	store.closeDatabase()
+	store.writeOptions = nil
+	return nil
+}
+
+func (store *LevelDbStore) Seek(key []byte) error {
+	if store.readOptions == nil {
+		panic("You may only seek while reading")
+	}
+	store.readIterator.Seek(key)
+	return nil
+}
+
+func (store *LevelDbStore) DeleteAllRecords() error {
+	store.dbOpenLock.Lock()
+	defer store.dbOpenLock.Unlock()
+	writeOptions := store.writeOptions
+	if writeOptions != nil {
+		writeOptions = levigo.NewWriteOptions()
+		defer writeOptions.Close()
+	}
+	readOptions := store.readOptions
+	if readOptions != nil {
+		readOptions = levigo.NewReadOptions()
+		defer readOptions.Close()
+	}
+	it := store.db.NewIterator(readOptions)
 	defer it.Close()
 	it.SeekToFirst()
 	for ; it.Valid(); it.Next() {
-		if err := db.Delete(writeOpts, it.Key()); err != nil {
+		if err := store.db.Delete(writeOptions, it.Key()); err != nil {
 			return fmt.Errorf("Error clearing keys from database: %v", err)
 		}
 	}
 	if err := it.GetError(); err != nil {
 		return fmt.Errorf("Error iterating through database: %v", err)
-	}
-
-	for record := range recordsChan {
-		if err := db.Put(writeOpts, record.Key, record.Value); err != nil {
-			return fmt.Errorf("Error writing to database: %v", err)
-		}
-		recordsWritten.Add(1)
-		bytesWritten.Add(int64(len(record.Key) + len(record.Value)))
 	}
 	return nil
 }
