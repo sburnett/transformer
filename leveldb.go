@@ -143,7 +143,7 @@ func (store *LevelDbStore) DeleteAllRecords() error {
 	defer store.dbOpenLock.Unlock()
 
 	if store.readOptions == nil && store.writeOptions == nil {
-        panic("You may only call DeleteAllRecords after starting reading or writing")
+		panic("You may only call DeleteAllRecords after starting reading or writing")
 	}
 
 	writeOptions := store.writeOptions
