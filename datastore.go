@@ -410,6 +410,12 @@ func (store *SliceStore) BeginWriting() error {
 }
 
 func (store *SliceStore) WriteRecord(record *LevelDbRecord) error {
+	for idx, existingRecord := range store.records {
+		if bytes.Equal(record.Key, existingRecord.Key) {
+			store.records[idx] = record
+			return nil
+		}
+	}
 	store.records = append(store.records, record)
 	return nil
 }
