@@ -44,12 +44,32 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 				return err
 			}
 			*value = decoded[:len(decoded)-1]
+        case *[][]byte:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([][]byte, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *string:
 			var decoded []byte
 			if err := Read(reader, &decoded); err != nil {
 				return err
 			}
 			*value = string(decoded)
+        case *[]string:
+			var decoded [][]byte
+			if err := Read(reader, &decoded); err != nil {
+				return err
+			}
+            *value = make([]string, len(decoded))
+            for idx, element := range decoded {
+                (*value)[idx] = string(element)
+            }
 		case *uint8:
 			var decoded uint8
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
@@ -66,12 +86,34 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			} else {
 				*value = int8(decoded) - int8(math.MaxUint8-math.MaxInt8-1) - 1
 			}
+        case *[]int8:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]int8, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *uint16:
 			var decoded uint16
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
 				return err
 			}
 			*value = decoded
+        case *[]uint16:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]uint16, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *int16:
 			var decoded uint16
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
@@ -82,12 +124,34 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			} else {
 				*value = int16(decoded) - int16(math.MaxUint16-math.MaxInt16-1) - 1
 			}
+        case *[]int16:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]int16, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *uint32:
 			var decoded uint32
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
 				return err
 			}
 			*value = decoded
+        case *[]uint32:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]uint32, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *int32:
 			var decoded uint32
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
@@ -98,12 +162,34 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			} else {
 				*value = int32(decoded) - int32(math.MaxUint32-math.MaxInt32-1) - 1
 			}
+        case *[]int32:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]int32, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *uint64:
 			var decoded uint64
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
 				return err
 			}
 			*value = decoded
+        case *[]uint64:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]uint64, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		case *int64:
 			var decoded uint64
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
@@ -114,6 +200,17 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			} else {
 				*value = int64(decoded) - int64(math.MaxUint64-math.MaxInt64-1) - 1
 			}
+        case *[]int64:
+            var sliceLength int32
+            if err := Read(reader, &sliceLength); err != nil {
+                return fmt.Errorf("Error reading slice length: %v", err)
+            }
+            *value = make([]int64, sliceLength)
+            for idx := int32(0); idx < sliceLength; idx++ {
+                if err := Read(reader, &(*value)[idx]); err != nil {
+                    return fmt.Errorf("Error reading slice element: %v", err)
+                }
+            }
 		default:
 			return fmt.Errorf("Lexicographic decoding not available for type %T", value)
 		}
@@ -149,8 +246,25 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 			if _, err := writer.Write(append(value, '\x00')); err != nil {
 				return err
 			}
+        case [][]byte:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case string:
 			if err := Write(writer, []byte(value)); err != nil {
+				return err
+			}
+        case []string:
+            bytesValue := make([][]byte, len(value))
+            for idx, element := range value {
+                bytesValue[idx] = []byte(element)
+            }
+			if err := Write(writer, bytesValue); err != nil {
 				return err
 			}
 		case uint8:
@@ -167,10 +281,28 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 			if err := Write(writer, uint8value); err != nil {
 				return err
 			}
+        case []int8:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case uint16:
 			if err := binary.Write(writer, binary.BigEndian, value); err != nil {
 				return err
 			}
+        case []uint16:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case int16:
 			var uint16value uint16
 			if value >= 0 {
@@ -181,10 +313,28 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 			if err := Write(writer, uint16value); err != nil {
 				return err
 			}
+        case []int16:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case uint32:
 			if err := binary.Write(writer, binary.BigEndian, value); err != nil {
 				return err
 			}
+        case []uint32:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case int32:
 			var uint32value uint32
 			if value >= 0 {
@@ -195,10 +345,28 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 			if err := Write(writer, uint32value); err != nil {
 				return err
 			}
+        case []int32:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case uint64:
 			if err := binary.Write(writer, binary.BigEndian, value); err != nil {
 				return err
 			}
+        case []uint64:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		case int64:
 			var uint64value uint64
 			if value >= 0 {
@@ -209,6 +377,15 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 			if err := Write(writer, uint64value); err != nil {
 				return err
 			}
+        case []int64:
+            if err := Write(writer, int32(len(value))); err != nil {
+                return fmt.Errorf("Error encoding slice length: %v", err)
+            }
+            for _, element := range value {
+                if err := Write(writer, element); err != nil {
+                    return fmt.Errorf("Error encoding slice element: %v", err)
+                }
+            }
 		default:
 			return fmt.Errorf("Lexicographic encoding not available for type %T", value)
 		}

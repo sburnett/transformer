@@ -135,6 +135,29 @@ func TestReadBytes(t *testing.T) {
 	checkDecode([]byte(""))
 }
 
+func TestReadBytesSlice(t *testing.T) {
+	checkDecode := func(value [][]byte) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue [][]byte
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if !bytes.Equal(value[i], decodedValue[i]) {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([][]byte{[]byte("hello"), []byte("world")})
+	checkDecode([][]byte{[]byte("")})
+}
+
 func TestReadString(t *testing.T) {
 	checkDecode := func(value string) {
 		buffer := bytes.NewBuffer([]byte{})
@@ -151,6 +174,29 @@ func TestReadString(t *testing.T) {
 	}
 	checkDecode("hello")
 	checkDecode("")
+}
+
+func TestReadStringSlice(t *testing.T) {
+	checkDecode := func(value []string) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []string
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]string{"hello", "world"})
+	checkDecode([]string{""})
 }
 
 func TestReadUint8(t *testing.T) {
@@ -193,6 +239,31 @@ func TestReadInt8(t *testing.T) {
 	checkDecode(math.MinInt8)
 }
 
+func TestReadInt8Slice(t *testing.T) {
+	checkDecode := func(value []int8) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []int8
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]int8{2, 3, 1})
+	checkDecode([]int8{1, 0, 2, 0, 3})
+	checkDecode([]int8{-1, -2, 3, 4, -3, 1})
+    checkDecode([]int8{math.MinInt8, math.MaxInt8})
+}
+
 func TestReadUint16(t *testing.T) {
 	checkDecode := func(value uint16) {
 		buffer := bytes.NewBuffer([]byte{})
@@ -209,6 +280,30 @@ func TestReadUint16(t *testing.T) {
 	}
 	checkDecode(0)
 	checkDecode(math.MaxUint16)
+}
+
+func TestReadUint16Slice(t *testing.T) {
+	checkDecode := func(value []uint16) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []uint16
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]uint16{2, 3, 1})
+	checkDecode([]uint16{1, 0, 2, 0, 3})
+	checkDecode([]uint16{math.MaxUint16})
 }
 
 func TestReadInt16(t *testing.T) {
@@ -233,6 +328,31 @@ func TestReadInt16(t *testing.T) {
 	checkDecode(math.MinInt16)
 }
 
+func TestReadInt16Slice(t *testing.T) {
+	checkDecode := func(value []int16) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []int16
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]int16{2, 3, 1})
+	checkDecode([]int16{1, 0, 2, 0, 3})
+	checkDecode([]int16{-1, -2, 3, 4, -3, 1})
+	checkDecode([]int16{math.MinInt16, math.MaxInt16})
+}
+
 func TestReadUint32(t *testing.T) {
 	checkDecode := func(value uint32) {
 		buffer := bytes.NewBuffer([]byte{})
@@ -249,6 +369,30 @@ func TestReadUint32(t *testing.T) {
 	}
 	checkDecode(0)
 	checkDecode(math.MaxUint32)
+}
+
+func TestReadUint32Slice(t *testing.T) {
+	checkDecode := func(value []uint32) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []uint32
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]uint32{2, 3, 1})
+	checkDecode([]uint32{1, 0, 2, 0, 3})
+	checkDecode([]uint32{math.MaxUint32})
 }
 
 func TestReadInt32(t *testing.T) {
@@ -273,6 +417,31 @@ func TestReadInt32(t *testing.T) {
 	checkDecode(math.MinInt32)
 }
 
+func TestReadInt32Slice(t *testing.T) {
+	checkDecode := func(value []int32) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []int32
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]int32{2, 3, 1})
+	checkDecode([]int32{1, 0, 2, 0, 3})
+	checkDecode([]int32{-1, -2, 3, 4, -3, 1})
+	checkDecode([]int32{math.MinInt32, math.MaxInt32})
+}
+
 func TestReadUint64(t *testing.T) {
 	checkDecode := func(value uint64) {
 		buffer := bytes.NewBuffer([]byte{})
@@ -289,6 +458,30 @@ func TestReadUint64(t *testing.T) {
 	}
 	checkDecode(0)
 	checkDecode(math.MaxUint64)
+}
+
+func TestReadUint64Slice(t *testing.T) {
+	checkDecode := func(value []uint64) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []uint64
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]uint64{2, 3, 1})
+	checkDecode([]uint64{1, 0, 2, 0, 3})
+	checkDecode([]uint64{math.MaxUint64})
 }
 
 func TestReadInt64(t *testing.T) {
@@ -311,6 +504,31 @@ func TestReadInt64(t *testing.T) {
 	checkDecode(-100)
 	checkDecode(math.MaxInt64)
 	checkDecode(math.MinInt64)
+}
+
+func TestReadInt64Slice(t *testing.T) {
+	checkDecode := func(value []int64) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue []int64
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+        if len(value) != len(decodedValue) {
+            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+        }
+        for i := 0; i < len(value); i++ {
+            if value[i] != decodedValue[i] {
+                t.Fatalf("Expected: %v, got %v", value, decodedValue)
+            }
+        }
+	}
+	checkDecode([]int64{2, 3, 1})
+	checkDecode([]int64{1, 0, 2, 0, 3})
+	checkDecode([]int64{-1, -2, 3, 4, -3, 1})
+	checkDecode([]int64{math.MinInt64, math.MaxInt64})
 }
 
 func TestWriteMultiple(t *testing.T) {
