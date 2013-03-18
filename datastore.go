@@ -70,6 +70,7 @@ func (demuxer *DemuxStoreReader) ReadRecord() (*LevelDbRecord, error) {
 		if record == nil {
 			return nil
 		}
+		record.DatabaseIndex = databaseIndex
 		item := &Item{
 			record:   record,
 			reader:   reader,
