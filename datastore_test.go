@@ -96,6 +96,65 @@ func ExampleDemuxInputsSorted_duplicateKeys() {
 	// c: bar1
 }
 
+func ExampleDemuxInputsSeek() {
+	firstStore := SliceStore{}
+	firstStore.BeginWriting()
+	firstStore.WriteRecord(makeLevelDbRecord("d", "foo0", 0))
+	firstStore.WriteRecord(makeLevelDbRecord("f", "bar0", 0))
+	firstStore.WriteRecord(makeLevelDbRecord("h", "baz0", 0))
+	firstStore.EndWriting()
+
+	secondStore := SliceStore{}
+	secondStore.BeginWriting()
+	secondStore.WriteRecord(makeLevelDbRecord("e", "foo1", 1))
+	secondStore.WriteRecord(makeLevelDbRecord("g", "bar1", 1))
+	secondStore.WriteRecord(makeLevelDbRecord("i", "baz1", 1))
+	secondStore.EndWriting()
+
+	thirdStore := SliceStore{}
+	thirdStore.BeginWriting()
+	thirdStore.WriteRecord(makeLevelDbRecord("a", "foo2", 2))
+	thirdStore.WriteRecord(makeLevelDbRecord("b", "bar2", 2))
+	thirdStore.WriteRecord(makeLevelDbRecord("c", "baz2", 2))
+	thirdStore.EndWriting()
+
+	reader := NewDemuxStoreSeeker(&firstStore, &secondStore, &thirdStore)
+	reader.BeginReading()
+	readRecords := func(count int) {
+		for i := 0; i < count; i++ {
+			record, err := reader.ReadRecord()
+			if err != nil {
+				panic(err)
+			}
+			if record == nil {
+				break
+			}
+			fmt.Printf("%s: %s\n", record.Key, record.Value)
+		}
+	}
+	readRecords(3)
+	fmt.Printf("SEEK\n")
+	reader.Seek([]byte("b"))
+	readRecords(3)
+	fmt.Printf("SEEK\n")
+	reader.Seek([]byte("g"))
+	readRecords(3)
+	reader.EndReading()
+
+	// Output:
+	// a: foo2
+	// b: bar2
+	// c: baz2
+	// SEEK
+	// b: bar2
+	// c: baz2
+	// d: foo0
+	// SEEK
+	// g: bar1
+	// h: baz0
+	// i: baz1
+}
+
 func ExampleMuxedStoreWriter() {
 	records := []*LevelDbRecord{
 		makeLevelDbRecord("a", "b", 0),
@@ -342,6 +401,11 @@ func ExampleReadIncludingPrefixes() {
 	store.WriteRecord(makeLevelDbRecord("bac", "a", 0))
 	store.WriteRecord(makeLevelDbRecord("bbb", "b", 0))
 	store.WriteRecord(makeLevelDbRecord("dab", "l", 0))
+	store.WriteRecord(makeLevelDbRecord("eaa", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("eab", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("eba", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("ebb", "z", 0))
+	store.WriteRecord(makeLevelDbRecord("ebc", "z", 0))
 	store.EndWriting()
 
 	includedStore := SliceStore{}
@@ -349,6 +413,8 @@ func ExampleReadIncludingPrefixes() {
 	includedStore.WriteRecord(makeLevelDbRecord("aa", "", 0))
 	includedStore.WriteRecord(makeLevelDbRecord("b", "", 0))
 	includedStore.WriteRecord(makeLevelDbRecord("c", "", 0))
+	includedStore.WriteRecord(makeLevelDbRecord("ea", "", 0))
+	includedStore.WriteRecord(makeLevelDbRecord("eb", "", 0))
 	includedStore.EndWriting()
 
 	includingReader := ReadIncludingPrefixes(&store, &includedStore)
@@ -371,6 +437,11 @@ func ExampleReadIncludingPrefixes() {
 	// baa
 	// bac
 	// bbb
+	// eaa
+	// eab
+	// eba
+	// ebb
+	// ebc
 }
 
 func ExampleSliceStore() {

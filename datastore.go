@@ -109,6 +109,85 @@ func (demuxer *DemuxStoreReader) EndReading() error {
 	return nil
 }
 
+type DemuxStoreSeeker struct {
+	readers []StoreSeeker
+	records PriorityQueue
+}
+
+func NewDemuxStoreSeeker(readers ...StoreSeeker) *DemuxStoreSeeker {
+	if len(readers) > math.MaxUint8 {
+		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
+	}
+	return &DemuxStoreSeeker{readers: readers}
+}
+
+func (demuxer *DemuxStoreSeeker) BeginReading() error {
+	for _, reader := range demuxer.readers {
+		if err := reader.BeginReading(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (demuxer *DemuxStoreSeeker) ReadRecord() (*LevelDbRecord, error) {
+	readRecord := func(reader StoreReader, queue *PriorityQueue, databaseIndex uint8) error {
+		record, err := reader.ReadRecord()
+		if err != nil {
+			return err
+		}
+		if record == nil {
+			return nil
+		}
+		record.DatabaseIndex = databaseIndex
+		item := &Item{
+			record:   record,
+			reader:   reader,
+			priority: Priority{key: record.Key, databaseIndex: uint8(databaseIndex)},
+		}
+		heap.Push(queue, item)
+		return nil
+	}
+
+	if demuxer.records == nil {
+		demuxer.records = make(PriorityQueue, 0, len(demuxer.readers))
+		for idx, reader := range demuxer.readers {
+			if err := readRecord(reader, &demuxer.records, uint8(idx)); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if demuxer.records.Len() == 0 {
+		return nil, nil
+	}
+
+	item := heap.Pop(&demuxer.records).(*Item)
+	if err := readRecord(item.reader, &demuxer.records, item.priority.databaseIndex); err != nil {
+		return nil, err
+	}
+	return item.record, nil
+}
+
+func (demuxer *DemuxStoreSeeker) Seek(key []byte) error {
+	for _, reader := range demuxer.readers {
+		if err := reader.Seek(key); err != nil {
+			return err
+		}
+	}
+	demuxer.records = nil
+	return nil
+}
+
+func (demuxer *DemuxStoreSeeker) EndReading() error {
+	for _, reader := range demuxer.readers {
+		if err := reader.EndReading(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type MuxedStoreWriter []StoreWriter
 
 func NewMuxedStoreWriter(writers ...StoreWriter) MuxedStoreWriter {
@@ -431,7 +510,11 @@ func (store *SliceStore) DeleteAllRecords() error {
 }
 
 func (store *SliceStore) Seek(key []byte) error {
-	for store.cursor < len(store.records)-1 && bytes.Compare(store.records[store.cursor+1].Key, key) < 0 {
+	store.cursor = -1
+	for store.cursor < len(store.records) {
+		if store.cursor+1 >= len(store.records) || bytes.Compare(store.records[store.cursor+1].Key, key) >= 0 {
+			break
+		}
 		store.cursor++
 	}
 	return nil
