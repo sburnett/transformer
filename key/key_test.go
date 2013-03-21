@@ -145,14 +145,14 @@ func TestReadBytesSlice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if !bytes.Equal(value[i], decodedValue[i]) {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if !bytes.Equal(value[i], decodedValue[i]) {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([][]byte{[]byte("hello"), []byte("world")})
 	checkDecode([][]byte{[]byte("")})
@@ -186,14 +186,14 @@ func TestReadStringSlice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]string{"hello", "world"})
 	checkDecode([]string{""})
@@ -249,19 +249,19 @@ func TestReadInt8Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]int8{2, 3, 1})
 	checkDecode([]int8{1, 0, 2, 0, 3})
 	checkDecode([]int8{-1, -2, 3, 4, -3, 1})
-    checkDecode([]int8{math.MinInt8, math.MaxInt8})
+	checkDecode([]int8{math.MinInt8, math.MaxInt8})
 }
 
 func TestReadUint16(t *testing.T) {
@@ -292,14 +292,14 @@ func TestReadUint16Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]uint16{2, 3, 1})
 	checkDecode([]uint16{1, 0, 2, 0, 3})
@@ -338,14 +338,14 @@ func TestReadInt16Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]int16{2, 3, 1})
 	checkDecode([]int16{1, 0, 2, 0, 3})
@@ -381,14 +381,14 @@ func TestReadUint32Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]uint32{2, 3, 1})
 	checkDecode([]uint32{1, 0, 2, 0, 3})
@@ -427,14 +427,14 @@ func TestReadInt32Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]int32{2, 3, 1})
 	checkDecode([]int32{1, 0, 2, 0, 3})
@@ -470,14 +470,14 @@ func TestReadUint64Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]uint64{2, 3, 1})
 	checkDecode([]uint64{1, 0, 2, 0, 3})
@@ -516,14 +516,14 @@ func TestReadInt64Slice(t *testing.T) {
 		if err := Read(buffer, &decodedValue); err != nil {
 			t.Fatalf("Decoder error: %v", err)
 		}
-        if len(value) != len(decodedValue) {
-            t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
-        }
-        for i := 0; i < len(value); i++ {
-            if value[i] != decodedValue[i] {
-                t.Fatalf("Expected: %v, got %v", value, decodedValue)
-            }
-        }
+		if len(value) != len(decodedValue) {
+			t.Fatalf("Slices are of different lengths: expected %v, got %v", len(value), len(decodedValue))
+		}
+		for i := 0; i < len(value); i++ {
+			if value[i] != decodedValue[i] {
+				t.Fatalf("Expected: %v, got %v", value, decodedValue)
+			}
+		}
 	}
 	checkDecode([]int64{2, 3, 1})
 	checkDecode([]int64{1, 0, 2, 0, 3})
