@@ -226,12 +226,34 @@ func Decode(key []byte, toRead ...interface{}) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
+// Decode the given byte array into a series of primitives. The variadic
+// arguments must be pointers to primitives so we may modify their values.
+//
+// Partition the input bytes into two slices: the portion we decoded and the
+// portion we didn't decode. Return both slices.
+func DecodeAndSplit(key []byte, toRead ...interface{}) ([]byte, []byte, error) {
+	remainder, err := Decode(key, toRead...)
+	if err != nil {
+		return nil, nil, err
+	}
+	decoded := key[:len(key)-len(remainder)]
+	return decoded, remainder, nil
+}
+
 func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
 	remainder, err := Decode(key, toRead...)
 	if err != nil {
 		panic(err)
 	}
 	return remainder
+}
+
+func DecodeAndSplitOrDie(key []byte, toRead ...interface{}) ([]byte, []byte) {
+	decoded, remainder, err := DecodeAndSplit(key, toRead...)
+	if err != nil {
+		panic(err)
+	}
+	return decoded, remainder
 }
 
 // Write encoded versions of the variadic parameters to writer.
