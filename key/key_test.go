@@ -600,3 +600,28 @@ func TestDecodePartial(t *testing.T) {
 		t.Fatalf("Key not empty after all fields read.")
 	}
 }
+
+func TestDecodeAndSplit(t *testing.T) {
+	encoded, err := Encode("hello", int32(10), int64(20))
+	if err != nil {
+		t.Fatalf("Error encoding: %v", err)
+	}
+
+	testSplit := func(args ...interface{}) {
+		decoded, remainder, err := DecodeAndSplit(encoded, args...)
+		if err != nil {
+			t.Fatalf("Error decoding: %v", err)
+		}
+		if len(decoded)+len(remainder) != len(encoded) {
+			t.Fatalf("Invalid split lengths. %d decoded, %d remainder, %d total", len(decoded), len(remainder), len(encoded))
+		}
+	}
+
+	var stringArg string
+	var int32Arg int32
+	var int64Arg int64
+	testSplit()
+	testSplit(&stringArg)
+	testSplit(&stringArg, &int32Arg)
+	testSplit(&stringArg, &int32Arg, &int64Arg)
+}
