@@ -625,3 +625,34 @@ func TestDecodeAndSplit(t *testing.T) {
 	testSplit(&stringArg, &int32Arg)
 	testSplit(&stringArg, &int32Arg, &int64Arg)
 }
+
+type MyStruct struct {
+	value int64
+}
+
+func (s *MyStruct) EncodeLexicographically() ([]byte, error) {
+	return Encode(s.value)
+}
+
+func (s *MyStruct) DecodeLexicographically(buffer *bytes.Buffer) error {
+	return Read(buffer, &s.value)
+}
+
+func TestCustomEncoder(t *testing.T) {
+	original := MyStruct{int64(10)}
+	encoded, err := Encode(&original)
+	if err != nil {
+		t.Fatalf("Error encoding MyStruct: %v")
+	}
+	var decoded MyStruct
+	remainder, err := Decode(encoded, &decoded)
+	if err != nil {
+		t.Fatalf("Error decoding MyStruct: %v")
+	}
+	if original.value != decoded.value {
+		t.Fatalf("Expected: %v, got: %v", original.value, decoded.value)
+	}
+	if len(remainder) > 0 {
+		t.Fatalf("Unexpected remainder: %v", remainder)
+	}
+}

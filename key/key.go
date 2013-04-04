@@ -33,6 +33,11 @@ import (
 	"math"
 )
 
+type LexicographicEncoder interface {
+	EncodeLexicographically() ([]byte, error)
+	DecodeLexicographically(*bytes.Buffer) error
+}
+
 // Read an encoded key from reader and write decoded key components into toRead.
 // The variadic arguments must be pointers to primitives so we may modify them.
 func Read(reader *bytes.Buffer, toRead ...interface{}) error {
@@ -210,6 +215,10 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 				if err := Read(reader, &(*value)[idx]); err != nil {
 					return fmt.Errorf("Error reading slice element: %v", err)
 				}
+			}
+		case LexicographicEncoder:
+			if err := value.DecodeLexicographically(reader); err != nil {
+				return fmt.Errorf("Error in DecodeLexicographically: %v", err)
 			}
 		default:
 			return fmt.Errorf("Lexicographic decoding not available for type %T", value)
@@ -407,6 +416,14 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 				if err := Write(writer, element); err != nil {
 					return fmt.Errorf("Error encoding slice element: %v", err)
 				}
+			}
+		case LexicographicEncoder:
+			encodedValue, err := value.EncodeLexicographically()
+			if err != nil {
+				return fmt.Errorf("Error encoding a LexicographicEncoder: %v", err)
+			}
+			if _, err := writer.Write(encodedValue); err != nil {
+				return fmt.Errorf("Error writing a LexicographicEncoder: %v", err)
 			}
 		default:
 			return fmt.Errorf("Lexicographic encoding not available for type %T", value)
