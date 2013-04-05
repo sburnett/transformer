@@ -78,7 +78,6 @@ func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
 		for i := 0; i < numConcurrent; i++ {
 			<-doneChan
 		}
-		close(outputChan)
 	})
 }
 
@@ -141,7 +140,6 @@ func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 		for i := 0; i < numConcurrent; i++ {
 			<-doneChan
 		}
-		close(outputChan)
 	})
 }
 

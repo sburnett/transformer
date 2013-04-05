@@ -22,6 +22,7 @@ func ExampleMapTransformer() {
 	outputChan := make(chan *LevelDbRecord, 3)
 
 	mapper.Do(inputChan, outputChan)
+	close(outputChan)
 
 	for record := range outputChan {
 		fmt.Printf("%s: %s\n", record.Key, record.Value)
@@ -54,6 +55,7 @@ func ExampleDoTransformer() {
 	outputChan := make(chan *LevelDbRecord, 6)
 
 	doer.Do(inputChan, outputChan)
+	close(outputChan)
 
 	for record := range outputChan {
 		fmt.Printf("%s: %s\n", record.Key, record.Value)
@@ -89,6 +91,7 @@ func ExampleMultipleOutputsDoTransformer() {
 	outputChan := make(chan *LevelDbRecord, 6)
 
 	multiDoer.Do(inputChan, outputChan)
+	close(outputChan)
 
 	for record := range outputChan {
 		fmt.Printf("[%d] %s: %s\n", record.DatabaseIndex, record.Key, record.Value)
@@ -131,6 +134,7 @@ func ExampleGroupDoTransformer() {
 	outputChan := make(chan *LevelDbRecord, 4)
 
 	groupDoer.Do(inputChan, outputChan)
+	close(outputChan)
 
 	for record := range outputChan {
 		fmt.Printf("%s: %s\n", record.Key, record.Value)
@@ -178,6 +182,7 @@ func ExampleMultipleOutputsGroupDoTransformer() {
 	outputChan := make(chan *LevelDbRecord, 6)
 
 	multiGroupDoer.Do(inputChan, outputChan)
+	close(outputChan)
 
 	for record := range outputChan {
 		fmt.Printf("[%d] %s: %s\n", record.DatabaseIndex, record.Key, record.Value)
