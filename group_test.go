@@ -24,12 +24,12 @@ func ExampleJoin() {
 
     var stringKey string
     var intKey int32
-    joiner := NewJoiner(records, &stringKey, &intKey)
+    grouper := GroupRecords(records, &stringKey, &intKey)
 
-    for joiner.NextGroup() {
+    for grouper.NextGroup() {
         idx := 0
-        for joiner.NextRecord() {
-            record := joiner.Read()
+        for grouper.NextRecord() {
+            record := grouper.Read()
             var joinedString string
             key.DecodeOrDie(record.Key, &joinedString)
             fmt.Printf("[%d] %s %d %s\n", idx, stringKey, intKey, joinedString)

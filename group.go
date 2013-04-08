@@ -5,14 +5,14 @@ import (
     "github.com/sburnett/transformer/key"
 )
 
-type Joiner struct {
-    inputChan chan *LevelDbRecord
+type Grouper struct {
+    InputChan chan *LevelDbRecord
     prefixValues []interface{}
-    currentKeyPrefix []byte
+    CurrentGroupPrefix []byte
     currentRecord, nextRecord *LevelDbRecord
 }
 
-// Construct a new Joiner by reading records from the provided input channel and
+// Construct a new Grouper by reading records from the provided input channel and
 // grouping them by identical prefixValues.
 //
 // For example, given a set of records of names, years, months, and dollar amounts:
@@ -29,11 +29,11 @@ type Joiner struct {
 //
 //    var name string
 //    var year, month int32
-//    joiner := NewJoiner(records, &name, &year, &month)
-//    for joiner.NextPrefix() {
+//    grouper := GroupRecords(records, &name, &year, &month)
+//    for grouper.NextPrefix() {
 //      var monthlySpending int32
-//      for joiner.NextRecord() {
-//        record := joiner.Read()
+//      for grouper.NextRecord() {
+//        record := grouper.Read()
 //        var spending
 //        key.DecodeOrDie(record.Key, &spending)
 //        monthlySpending += spending
@@ -53,11 +53,11 @@ type Joiner struct {
 //
 //    var name string
 //    var year int32
-//    joiner := NewJoiner(records, &name, &year)
-//    for joiner.NextPrefix() {
+//    grouper := GroupRecords(records, &name, &year)
+//    for grouper.NextPrefix() {
 //      var yearlySpending int32
-//      for joiner.NextRecord() {
-//        record := joiner.Read()
+//      for grouper.NextRecord() {
+//        record := grouper.Read()
 //        var month, spending
 //        key.DecodeOrDie(record.Key, &month, &spending)
 //        yearlySpending += spending
@@ -65,67 +65,70 @@ type Joiner struct {
 //      fmt.Printf("%s spent $%d in %d", name, yearlySpending, year)
 //    }
 //
-// In each case, the Joiner groups records together when they share the same
-// values for each argument passed to NewJoiner.
-func NewJoiner(inputChan chan *LevelDbRecord, prefixValues ...interface{}) *Joiner {
-    return &Joiner{
-        inputChan: inputChan,
+// In each case, the Grouper groups records together when they share the same
+// values for each argument passed to GroupRecords.
+func GroupRecords(inputChan chan *LevelDbRecord, prefixValues ...interface{}) *Grouper {
+    return &Grouper{
+        InputChan: inputChan,
         prefixValues: prefixValues,
     }
 }
 
-func (joiner *Joiner) readRecord() *LevelDbRecord {
-    newRecord, ok := <-joiner.inputChan
+func (grouper *Grouper) readRecord() *LevelDbRecord {
+    newRecord, ok := <-grouper.InputChan
     if !ok {
         return nil
+    }
+    if newRecord == nil {
+        panic("LevelDbRecords should never be nil")
     }
     return newRecord
 }
 
-// Advance the Joiner so we can read a new group of records with identical
+// Advance the Grouper so we can read a new group of records with identical
 // prefixes. You should only call this method once NextRecord() has returned
 // false. (You cannot skip records within a prefix by calling NextPrefix.)
 //
 // Return true iff there is another prefix to read.
-func (joiner *Joiner) NextGroup() bool {
-    if joiner.currentKeyPrefix == nil {
-        joiner.nextRecord = joiner.readRecord()
+func (grouper *Grouper) NextGroup() bool {
+    if grouper.CurrentGroupPrefix == nil {
+        grouper.nextRecord = grouper.readRecord()
     }
-    if joiner.nextRecord == nil {
+    if grouper.nextRecord == nil {
         return false
     }
-    newPrefix, _ := key.DecodeAndSplitOrDie(joiner.nextRecord.Key, joiner.prefixValues...)
-    joiner.currentKeyPrefix = newPrefix
+    newPrefix, _ := key.DecodeAndSplitOrDie(grouper.nextRecord.Key, grouper.prefixValues...)
+    grouper.CurrentGroupPrefix = newPrefix
     return true
 }
 
-// Advance the Joiner to the next record within the current prefix, or return
+// Advance the Grouper to the next record within the current prefix, or return
 // false if there are no more records. Once this method returns false it is
 // safe to advance to the next prefix using NextPrefix().
-func (joiner *Joiner) NextRecord() bool {
-    joiner.currentRecord = nil
-    if joiner.nextRecord != nil {
-        joiner.currentRecord = joiner.nextRecord
-        joiner.currentRecord.Key = joiner.nextRecord.Key[len(joiner.currentKeyPrefix):]
-        joiner.nextRecord = nil
+func (grouper *Grouper) NextRecord() bool {
+    grouper.currentRecord = nil
+    if grouper.nextRecord != nil {
+        grouper.currentRecord = grouper.nextRecord
+        grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
+        grouper.nextRecord = nil
         return true
     }
-    newRecord := joiner.readRecord()
+    newRecord := grouper.readRecord()
     if newRecord == nil {
         return false
     }
-    if !bytes.HasPrefix(newRecord.Key, joiner.currentKeyPrefix) {
-        joiner.nextRecord = newRecord
+    if !bytes.HasPrefix(newRecord.Key, grouper.CurrentGroupPrefix) {
+        grouper.nextRecord = newRecord
         return false
     }
-    joiner.currentRecord = newRecord
-    joiner.currentRecord.Key = newRecord.Key[len(joiner.currentKeyPrefix):]
+    grouper.currentRecord = newRecord
+    grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
     return true
 }
 
 // Read the current record in the current group. This will return nil if there
 // is no record, which can happen when we reach the end of a group and haven't
 // called NextGroup to advance to the next group.
-func (joiner *Joiner) Read() *LevelDbRecord {
-    return joiner.currentRecord
+func (grouper *Grouper) Read() *LevelDbRecord {
+    return grouper.currentRecord
 }
