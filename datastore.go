@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/heap"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 )
@@ -518,4 +519,18 @@ func (store *SliceStore) Seek(key []byte) error {
 		store.cursor++
 	}
 	return nil
+}
+
+func (store *SliceStore) Print() {
+    store.BeginReading()
+    for {
+        record, err := store.ReadRecord()
+        if err != nil {
+            panic(err)
+        }
+        if record == nil {
+            break
+        }
+        log.Printf("%s: %s (%v: %v)", record.Key, record.Value, record.Key, record.Value)
+    }
 }
