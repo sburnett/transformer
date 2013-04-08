@@ -6,6 +6,14 @@ type LevelDbRecord struct {
 	DatabaseIndex uint8
 }
 
+func (record *LevelDbRecord) Copy() *LevelDbRecord {
+    return &LevelDbRecord{
+        Key: []byte(record.Key),
+        Value: []byte(record.Value),
+        DatabaseIndex: record.DatabaseIndex,
+    }
+}
+
 // This is the type of general transformations on data stored in LevelDB. Use
 // one of the more specialized transformers when possible since they can
 // parallize computation across multiple cores.

@@ -478,7 +478,7 @@ func (store *SliceStore) ReadRecord() (*LevelDbRecord, error) {
 	if store.cursor >= len(store.records) {
 		return nil, nil
 	}
-	return store.records[store.cursor], nil
+	return store.records[store.cursor].Copy(), nil
 }
 
 func (store *SliceStore) EndReading() error {
@@ -492,11 +492,11 @@ func (store *SliceStore) BeginWriting() error {
 func (store *SliceStore) WriteRecord(record *LevelDbRecord) error {
 	for idx, existingRecord := range store.records {
 		if bytes.Equal(record.Key, existingRecord.Key) {
-			store.records[idx] = record
+			store.records[idx] = record.Copy()
 			return nil
 		}
 	}
-	store.records = append(store.records, record)
+	store.records = append(store.records, record.Copy())
 	return nil
 }
 
