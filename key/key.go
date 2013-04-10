@@ -82,6 +82,19 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 			for idx, element := range decoded {
 				(*value)[idx] = string(element)
 			}
+		case *bool:
+			var decoded uint8
+			if err := Read(reader, &decoded); err != nil {
+				return err
+			}
+			switch decoded {
+			case 0:
+				*value = false
+			case 1:
+				*value = true
+			default:
+				return fmt.Errorf("Invalid bool encoding: %v", decoded)
+			}
 		case *uint8:
 			var decoded uint8
 			if err := binary.Read(reader, binary.BigEndian, &decoded); err != nil {
@@ -303,6 +316,16 @@ func Write(writer io.Writer, toWrite ...interface{}) error {
 				bytesValue[idx] = []byte(element)
 			}
 			if err := Write(writer, bytesValue); err != nil {
+				return err
+			}
+		case bool:
+			var uint8Value uint8
+			if value {
+				uint8Value = 1
+			} else {
+				uint8Value = 0
+			}
+			if err := Write(writer, uint8Value); err != nil {
 				return err
 			}
 		case uint8:

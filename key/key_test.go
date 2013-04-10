@@ -45,6 +45,13 @@ func TestWriteString(t *testing.T) {
 	checkLess(t, "a", "ab")
 }
 
+func TestWriteBool(t *testing.T) {
+	checkLess(t, false, true)
+	checkNotLess(t, true, false)
+	checkNotLess(t, false, false)
+	checkNotLess(t, true, true)
+}
+
 func TestWriteUint8(t *testing.T) {
 	checkLess(t, uint8(0), uint8(1))
 	checkLess(t, uint8(math.MaxUint8-1), uint8(math.MaxUint8))
@@ -197,6 +204,24 @@ func TestReadStringSlice(t *testing.T) {
 	}
 	checkDecode([]string{"hello", "world"})
 	checkDecode([]string{""})
+}
+
+func TestReadBool(t *testing.T) {
+	checkDecode := func(value bool) {
+		buffer := bytes.NewBuffer([]byte{})
+		if err := Write(buffer, value); err != nil {
+			t.Fatalf("Encoder error: %v", err)
+		}
+		var decodedValue bool
+		if err := Read(buffer, &decodedValue); err != nil {
+			t.Fatalf("Decoder error: %v", err)
+		}
+		if value != decodedValue {
+			t.Fatalf("Expected: %v, got %v", value, decodedValue)
+		}
+	}
+	checkDecode(true)
+	checkDecode(false)
 }
 
 func TestReadUint8(t *testing.T) {
