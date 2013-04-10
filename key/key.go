@@ -1,5 +1,5 @@
 /*
-	This package encodes tuples of primitives (i.e., strings and integers) into
+	This package encodes tuples of values (i.e., strings and integers) into
 	byte strings, preserving the order of the encoded tuples when sorted
 	lexicographically.
 
@@ -18,6 +18,9 @@
 	properly, so we convert signed integers into unsigned integers by
 	subtracting MinInt32 (i.e., adding the absolute value of MinInt32).
 
+	Users may add support for encoding arbitrary data structures by
+	implementing the LexicographicEncoder interface.
+
 	TODO(sburnett): Add support for floating point numbers. The default
 	representation doesn't sort lexicographically for negative numbers or
 	numbers with negative exponents, so we would need to deconstruct and alter
@@ -34,7 +37,11 @@ import (
 )
 
 type LexicographicEncoder interface {
+	// Return the lexicographic encoding of this object.
 	EncodeLexicographically() ([]byte, error)
+	// Decode the current object from a Buffer. This modifies the contents of
+	// the current object. In the case of failure, the object may have already
+	// been partially decoded (and modified).
 	DecodeLexicographically(*bytes.Buffer) error
 }
 
