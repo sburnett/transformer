@@ -6,7 +6,7 @@ import (
 )
 
 type Grouper struct {
-    InputChan chan *LevelDbRecord
+    inputChan chan *LevelDbRecord
     prefixValues []interface{}
     CurrentGroupPrefix []byte
     currentRecord, nextRecord *LevelDbRecord
@@ -69,13 +69,13 @@ type Grouper struct {
 // values for each argument passed to GroupRecords.
 func GroupRecords(inputChan chan *LevelDbRecord, prefixValues ...interface{}) *Grouper {
     return &Grouper{
-        InputChan: inputChan,
+        inputChan: inputChan,
         prefixValues: prefixValues,
     }
 }
 
 func (grouper *Grouper) readRecord() *LevelDbRecord {
-    newRecord, ok := <-grouper.InputChan
+    newRecord, ok := <-grouper.inputChan
     if !ok {
         return nil
     }
