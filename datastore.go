@@ -522,15 +522,15 @@ func (store *SliceStore) Seek(key []byte) error {
 }
 
 func (store *SliceStore) Print() {
-    store.BeginReading()
-    for {
-        record, err := store.ReadRecord()
-        if err != nil {
-            panic(err)
-        }
-        if record == nil {
-            break
-        }
-        log.Printf("%s: %s (%v: %v)", record.Key, record.Value, record.Key, record.Value)
-    }
+	store.BeginReading()
+	for {
+		record, err := store.ReadRecord()
+		if err != nil {
+			panic(err)
+		}
+		if record == nil {
+			break
+		}
+		log.Printf("%s: %s (%v: %v)", record.Key, record.Value, record.Key, record.Value)
+	}
 }

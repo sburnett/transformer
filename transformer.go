@@ -7,11 +7,11 @@ type LevelDbRecord struct {
 }
 
 func (record *LevelDbRecord) Copy() *LevelDbRecord {
-    return &LevelDbRecord{
-        Key: []byte(record.Key),
-        Value: []byte(record.Value),
-        DatabaseIndex: record.DatabaseIndex,
-    }
+	return &LevelDbRecord{
+		Key:           []byte(record.Key),
+		Value:         []byte(record.Value),
+		DatabaseIndex: record.DatabaseIndex,
+	}
 }
 
 // This is the type of general transformations on data stored in LevelDB. Use

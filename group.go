@@ -1,15 +1,15 @@
 package transformer
 
 import (
-    "bytes"
-    "github.com/sburnett/transformer/key"
+	"bytes"
+	"github.com/sburnett/transformer/key"
 )
 
 type Grouper struct {
-    inputChan chan *LevelDbRecord
-    prefixValues []interface{}
-    CurrentGroupPrefix []byte
-    currentRecord, nextRecord *LevelDbRecord
+	inputChan                 chan *LevelDbRecord
+	prefixValues              []interface{}
+	CurrentGroupPrefix        []byte
+	currentRecord, nextRecord *LevelDbRecord
 }
 
 // Construct a new Grouper by reading records from the provided input channel and
@@ -68,21 +68,21 @@ type Grouper struct {
 // In each case, the Grouper groups records together when they share the same
 // values for each argument passed to GroupRecords.
 func GroupRecords(inputChan chan *LevelDbRecord, prefixValues ...interface{}) *Grouper {
-    return &Grouper{
-        inputChan: inputChan,
-        prefixValues: prefixValues,
-    }
+	return &Grouper{
+		inputChan:    inputChan,
+		prefixValues: prefixValues,
+	}
 }
 
 func (grouper *Grouper) readRecord() *LevelDbRecord {
-    newRecord, ok := <-grouper.inputChan
-    if !ok {
-        return nil
-    }
-    if newRecord == nil {
-        panic("LevelDbRecords should never be nil")
-    }
-    return newRecord
+	newRecord, ok := <-grouper.inputChan
+	if !ok {
+		return nil
+	}
+	if newRecord == nil {
+		panic("LevelDbRecords should never be nil")
+	}
+	return newRecord
 }
 
 // Advance the Grouper so we can read a new group of records with identical
@@ -91,44 +91,44 @@ func (grouper *Grouper) readRecord() *LevelDbRecord {
 //
 // Return true iff there is another prefix to read.
 func (grouper *Grouper) NextGroup() bool {
-    if grouper.CurrentGroupPrefix == nil {
-        grouper.nextRecord = grouper.readRecord()
-    }
-    if grouper.nextRecord == nil {
-        return false
-    }
-    newPrefix, _ := key.DecodeAndSplitOrDie(grouper.nextRecord.Key, grouper.prefixValues...)
-    grouper.CurrentGroupPrefix = newPrefix
-    return true
+	if grouper.CurrentGroupPrefix == nil {
+		grouper.nextRecord = grouper.readRecord()
+	}
+	if grouper.nextRecord == nil {
+		return false
+	}
+	newPrefix, _ := key.DecodeAndSplitOrDie(grouper.nextRecord.Key, grouper.prefixValues...)
+	grouper.CurrentGroupPrefix = newPrefix
+	return true
 }
 
 // Advance the Grouper to the next record within the current prefix, or return
 // false if there are no more records. Once this method returns false it is
 // safe to advance to the next prefix using NextPrefix().
 func (grouper *Grouper) NextRecord() bool {
-    grouper.currentRecord = nil
-    if grouper.nextRecord != nil {
-        grouper.currentRecord = grouper.nextRecord
-        grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
-        grouper.nextRecord = nil
-        return true
-    }
-    newRecord := grouper.readRecord()
-    if newRecord == nil {
-        return false
-    }
-    if !bytes.HasPrefix(newRecord.Key, grouper.CurrentGroupPrefix) {
-        grouper.nextRecord = newRecord
-        return false
-    }
-    grouper.currentRecord = newRecord
-    grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
-    return true
+	grouper.currentRecord = nil
+	if grouper.nextRecord != nil {
+		grouper.currentRecord = grouper.nextRecord
+		grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
+		grouper.nextRecord = nil
+		return true
+	}
+	newRecord := grouper.readRecord()
+	if newRecord == nil {
+		return false
+	}
+	if !bytes.HasPrefix(newRecord.Key, grouper.CurrentGroupPrefix) {
+		grouper.nextRecord = newRecord
+		return false
+	}
+	grouper.currentRecord = newRecord
+	grouper.currentRecord.Key = grouper.currentRecord.Key[len(grouper.CurrentGroupPrefix):]
+	return true
 }
 
 // Read the current record in the current group. This will return nil if there
 // is no record, which can happen when we reach the end of a group and haven't
 // called NextGroup to advance to the next group.
 func (grouper *Grouper) Read() *LevelDbRecord {
-    return grouper.currentRecord
+	return grouper.currentRecord
 }
