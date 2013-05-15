@@ -36,7 +36,6 @@ func (pq PriorityQueue) Less(i, j int) bool {
 	default:
 		panic(fmt.Errorf("bytes.Compare returned an unexpected value: %v", cmp))
 	}
-	panic("This should never happen")
 }
 
 func (pq PriorityQueue) Swap(i, j int) {
