@@ -3,11 +3,10 @@
 	byte strings, preserving the order of the encoded tuples when sorted
 	lexicographically.
 
-	(x1, x2, ..., xn) < (y1, y2, ..., yn) iff bytes.Compare(Encode(x1, x2, ...,
-	xn), Encode<y1, y2, ..., yn) < 0.
+	(x1, x2, ..., xn) < (y1, y2, ..., yn) iff bytes.Compare(Encode(x1, x2, ..., xn), Encode(y1, y2, ..., yn)) < 0.
 
-	We must take special care when encoding primitives since their default
-	binary encodings aren't always lexicographic.
+	We take special care when encoding primitives since their default binary
+	encodings aren't always lexicographically ordered.
 
 	We encode byte arrays and strings with terminating null characters, so bytes
 	arrays and strings may not contain embedded nulls.
@@ -45,8 +44,9 @@ type LexicographicEncoder interface {
 	DecodeLexicographically(*bytes.Buffer) error
 }
 
-// Read an encoded key from reader and write decoded key components into toRead.
-// The variadic arguments must be pointers to primitives so we may modify them.
+// This function reads an encoded key from reader and write decoded key
+// components into toRead. The variadic arguments must be pointers to primitives
+// so we may modify them.
 func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 	for _, data := range toRead {
 		switch value := data.(type) {
@@ -249,6 +249,11 @@ func Read(reader *bytes.Buffer, toRead ...interface{}) error {
 
 // Decode the given byte array into a series of primitives. The variadic
 // arguments must be pointers to primitives so we may modify their values.
+//
+// The byte array should have been produced by Encode; you cannot Decode
+// arbitrary byte arrays using this function. The byte array encoding carries no
+// type information, so be careful to pass variables of exactly the same type as
+// were originally passed to Encode().
 func Decode(key []byte, toRead ...interface{}) ([]byte, error) {
 	buffer := bytes.NewBuffer(key)
 	err := Read(buffer, toRead...)
@@ -269,6 +274,7 @@ func DecodeAndSplit(key []byte, toRead ...interface{}) ([]byte, []byte, error) {
 	return decoded, remainder, nil
 }
 
+// This function is equivalent to Decode() except that it panics on errors.
 func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
 	remainder, err := Decode(key, toRead...)
 	if err != nil {
@@ -277,6 +283,7 @@ func DecodeOrDie(key []byte, toRead ...interface{}) []byte {
 	return remainder
 }
 
+// This function is equivalent to DecodeAndSplit() except that it panics on errors.
 func DecodeAndSplitOrDie(key []byte, toRead ...interface{}) ([]byte, []byte) {
 	decoded, remainder, err := DecodeAndSplit(key, toRead...)
 	if err != nil {
@@ -471,6 +478,7 @@ func Encode(toWrite ...interface{}) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// This function is equivalent to Encode() except that it panics on errors.
 func EncodeOrDie(toWrite ...interface{}) []byte {
 	encoded, err := Encode(toWrite...)
 	if err != nil {
