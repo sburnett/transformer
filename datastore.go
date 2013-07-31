@@ -46,6 +46,13 @@ type DemuxStoreReader struct {
 	records PriorityQueue
 }
 
+// Make a new reader that reads records from the provided set of StoreReaders in
+// lexicographic order by key. This lets you join multiple LevelDBs.
+//
+// When using records from the DemuxStoreReader, the DatabaseIndex field will be
+// set according to the database's position in the argument list. For example
+// for NewDemuxStoreReader(db1, db2), records from db1 will have DatabaseIndex =
+// 0 and records from db2 will have DatabaseIndex = 1.
 func NewDemuxStoreReader(readers ...StoreReader) *DemuxStoreReader {
 	if len(readers) > math.MaxUint8 {
 		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
@@ -115,6 +122,8 @@ type DemuxStoreSeeker struct {
 	records PriorityQueue
 }
 
+// This is the same as NewDemuxStoreReader, except that all readers must be
+// seekable, which lets you seek on the returned DemuxStoreSeeker.
 func NewDemuxStoreSeeker(readers ...StoreSeeker) *DemuxStoreSeeker {
 	if len(readers) > math.MaxUint8 {
 		panic(fmt.Errorf("Cannot read from more than %d databases", math.MaxUint8))
@@ -191,6 +200,10 @@ func (demuxer *DemuxStoreSeeker) EndReading() error {
 
 type MuxedStoreWriter []StoreWriter
 
+// This builds a writer that writes each record it recieves to one of the
+// provided writers according to the record's DatabaseIndex. For example, the
+// writer NewMuxedStoreWriter(db0, db1) will write records with DatabaseIndex =
+// 0 to db0 and records with DatabaseIndex = 1 to db1.
 func NewMuxedStoreWriter(writers ...StoreWriter) MuxedStoreWriter {
 	if len(writers) > math.MaxUint8 {
 		panic(fmt.Errorf("Cannot write to more than %d databases", math.MaxUint8))
@@ -224,6 +237,7 @@ type StoreWriterTruncate struct {
 	writer StoreDeleter
 }
 
+// Delete the contents of a StoreDeleter before writing any records to it.
 func TruncateBeforeWriting(writer StoreDeleter) *StoreWriterTruncate {
 	return &StoreWriterTruncate{writer: writer}
 }
@@ -249,6 +263,10 @@ type StoreReaderExcludeRanges struct {
 	currentExcludeRecord *LevelDbRecord
 }
 
+// Read all records from reader except those that fall within ranges specified
+// in excludedReader. excludedReader encodes ranges where the Key is the
+// beginning of the range and Value is the end of the range. Ranges are closed
+// intervals, so endpoints will not be read from the reader.
 func ReadExcludingRanges(reader StoreSeeker, excludedReader StoreReader) *StoreReaderExcludeRanges {
 	return &StoreReaderExcludeRanges{
 		reader:         reader,
@@ -322,6 +340,10 @@ type StoreReaderIncludeRanges struct {
 	currentIncludedRecord *LevelDbRecord
 }
 
+// Read records from reader that fall within ranges indicated by includedReader.
+// includedReader specifies ranges where Key is the beginning of the range and
+// Value is the end of the range. Ranges are closed intervals, so endpoints will
+// be included.
 func ReadIncludingRanges(reader StoreSeeker, includedReader StoreReader) *StoreReaderIncludeRanges {
 	return &StoreReaderIncludeRanges{
 		reader:         reader,
@@ -392,6 +414,9 @@ type StoreReaderIncludePrefixes struct {
 	currentIncludedRecord *LevelDbRecord
 }
 
+// Construct a StoreSeeker that reads records from reader that have prefixes
+// indicated by includedReader. includedReader specifies prefixes in the Key and
+// ignores the Value.
 func ReadIncludingPrefixes(reader StoreSeeker, includedReader StoreReader) *StoreReaderIncludePrefixes {
 	return &StoreReaderIncludePrefixes{
 		reader:         reader,
@@ -457,6 +482,9 @@ func (store *StoreReaderIncludePrefixes) EndReading() error {
 	return nil
 }
 
+// A SliceStore is a simple DatastoreFull that keeps its records in memory. It
+// is suitable for testing and small data sets, but should not be used for
+// larger data. Use LevelDbStore for larger data sets.
 type SliceStore struct {
 	records []*LevelDbRecord
 	cursor  int

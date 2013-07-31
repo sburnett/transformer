@@ -28,6 +28,9 @@ type LevelDbStore struct {
 	dbOpts       *levigo.Options
 }
 
+// Create a DatastoreFull that can read and write to a LevelDB database.
+// Connections to this database are on-demand, so the database isn't locked
+// until you BeginReading or BeginWriting.
 func NewLevelDbStore(dbPath string) *LevelDbStore {
 	return &LevelDbStore{
 		dbPath: dbPath,

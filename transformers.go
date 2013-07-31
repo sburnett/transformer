@@ -209,22 +209,27 @@ func (multipleOutputsGroupDoFunc MultipleOutputsGroupDoFunc) GroupDoToMultipleOu
 	multipleOutputsGroupDoFunc(inputRecords, outputChans...)
 }
 
-func MakeMapFunc(mapperFunc func(inputRecord *LevelDbRecord) (outputRecord *LevelDbRecord), numConcurrent int) Transformer {
+// Turn a MapFunc into a Transformer.
+func MakeMapFunc(mapperFunc MapFunc, numConcurrent int) Transformer {
 	return MakeMapTransformer(MapFunc(mapperFunc), numConcurrent)
 }
 
-func MakeDoFunc(doFunc func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord), numConcurrent int) Transformer {
+// Turn a DoFunc into a Transformer.
+func MakeDoFunc(doFunc DoFunc, numConcurrent int) Transformer {
 	return MakeDoTransformer(DoFunc(doFunc), numConcurrent)
 }
 
-func MakeMultipleOutputsDoFunc(multiDoFunc func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord), numOutputs, numConcurrent int) Transformer {
+// Turn a MultipleOutputsDoFunc into a Transformer.
+func MakeMultipleOutputsDoFunc(multiDoFunc MultipleOutputsDoFunc, numOutputs, numConcurrent int) Transformer {
 	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoFunc), numOutputs, numConcurrent)
 }
 
-func MakeGroupDoFunc(doFunc func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord), numConcurrent int) Transformer {
+// Turn GroupDoFunc into a Transformer.
+func MakeGroupDoFunc(doFunc GroupDoFunc, numConcurrent int) Transformer {
 	return MakeGroupDoTransformer(GroupDoFunc(doFunc), numConcurrent)
 }
 
-func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord), numOutputs, numConcurrent int) Transformer {
+// Turn a MultipleOutputsGroupDoFunc into a Transformer.
+func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc MultipleOutputsGroupDoFunc, numOutputs, numConcurrent int) Transformer {
 	return MakeMultipleOutputsGroupDoTransformer(MultipleOutputsGroupDoFunc(multiGroupDoFunc), numOutputs, numConcurrent)
 }
