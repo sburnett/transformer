@@ -3,7 +3,6 @@ package transformer
 import (
 	"expvar"
 	"log"
-	//"sort"
 )
 
 type PipelineStage struct {

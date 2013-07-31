@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"bytes"
+
 	"github.com/sburnett/transformer/key"
 )
 

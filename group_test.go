@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"fmt"
+
 	"github.com/sburnett/transformer/key"
 )
 

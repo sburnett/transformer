@@ -3,8 +3,9 @@ package transformer
 import (
 	"expvar"
 	"fmt"
-	"github.com/jmhodges/levigo"
 	"sync"
+
+	"github.com/jmhodges/levigo"
 )
 
 var recordsRead, bytesRead, recordsWritten, bytesWritten, seeks *expvar.Int
