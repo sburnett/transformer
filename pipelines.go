@@ -20,6 +20,8 @@ func init() {
 	currentStage = expvar.NewString("CurrentStage")
 }
 
+// Run a set of pipeline stages, skipping the first skipStages. We run stages
+// sequentially, with no parallelism between stages.
 func RunPipeline(stages []PipelineStage, skipStages int) {
 	for idx, stage := range stages[skipStages:] {
 		currentStage.Set(stage.Name)

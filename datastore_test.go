@@ -12,7 +12,7 @@ func makeLevelDbRecord(key string, value string, databaseIndex uint8) *LevelDbRe
 	}
 }
 
-func ExampleDemuxInputsSorted() {
+func ExampleDemuxStoreReader() {
 	firstStore := SliceStore{}
 	firstStore.BeginWriting()
 	firstStore.WriteRecord(makeLevelDbRecord("d", "foo0", 0))
@@ -60,7 +60,7 @@ func ExampleDemuxInputsSorted() {
 	// i: baz1
 }
 
-func ExampleDemuxInputsSorted_duplicateKeys() {
+func ExampleDemuxStoreReader_duplicateKeys() {
 	firstStore := SliceStore{}
 	firstStore.BeginWriting()
 	firstStore.WriteRecord(makeLevelDbRecord("a", "foo0", 0))
@@ -96,7 +96,7 @@ func ExampleDemuxInputsSorted_duplicateKeys() {
 	// c: bar1
 }
 
-func ExampleDemuxInputsSeek() {
+func ExampleDemuxStoreSeeker() {
 	firstStore := SliceStore{}
 	firstStore.BeginWriting()
 	firstStore.WriteRecord(makeLevelDbRecord("d", "foo0", 0))
@@ -206,7 +206,7 @@ func ExampleMuxedStoreWriter() {
 	// [1] g: h
 }
 
-func ExampleStoreWriterTruncate() {
+func ExampleTruncateBeforeWriting() {
 	store := &SliceStore{}
 	truncatingStore := TruncateBeforeWriting(store)
 	truncatingStore.BeginWriting()

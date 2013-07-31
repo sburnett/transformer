@@ -12,7 +12,7 @@ func makeRecord(values ...interface{}) *LevelDbRecord {
 	}
 }
 
-func ExampleJoin() {
+func ExampleGrouper() {
 	records := make(chan *LevelDbRecord, 10)
 	records <- makeRecord("hello", int32(10), "foo")
 	records <- makeRecord("hello", int32(10), "bar")

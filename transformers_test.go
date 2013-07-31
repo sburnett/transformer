@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func ExampleMapTransformer() {
+func ExampleMapper() {
 	mapper := MakeMapFunc(func(inputRecord *LevelDbRecord) *LevelDbRecord {
 		return &LevelDbRecord{
 			Key:   inputRecord.Key,
@@ -34,7 +34,7 @@ func ExampleMapTransformer() {
 	// e: f,f
 }
 
-func ExampleDoTransformer() {
+func ExampleDoer() {
 	doer := MakeDoFunc(func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
 		outputChan <- &LevelDbRecord{
 			Key:   inputRecord.Key,
@@ -70,7 +70,7 @@ func ExampleDoTransformer() {
 	// e: f;f
 }
 
-func ExampleMultipleOutputsDoTransformer() {
+func ExampleMultipleOutputsDoer() {
 	multiDoer := MakeMultipleOutputsDoFunc(func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
 		outputChans[0] <- &LevelDbRecord{
 			Key:   inputRecord.Key,
@@ -106,7 +106,7 @@ func ExampleMultipleOutputsDoTransformer() {
 	// [1] e: f;f
 }
 
-func ExampleGroupDoTransformer() {
+func ExampleGroupDoer() {
 	groupDoer := MakeGroupDoFunc(func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
 		for _, inputRecord := range inputRecords {
 			switch inputRecord.DatabaseIndex {
@@ -147,7 +147,7 @@ func ExampleGroupDoTransformer() {
 	// g: h;h
 }
 
-func ExampleMultipleOutputsGroupDoTransformer() {
+func ExampleMultipleOutputsGroupDoer() {
 	multiGroupDoer := MakeMultipleOutputsGroupDoFunc(func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord) {
 		for _, inputRecord := range inputRecords {
 			switch inputRecord.DatabaseIndex {

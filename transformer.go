@@ -1,11 +1,17 @@
 package transformer
 
+// This represents a single entry in a LevelDb database and is the foundation of
+// record processing.
+//
+// You will find github.com/sburnett/transformer/key very helpful for encoding
+// and decoding Keys and Values.
 type LevelDbRecord struct {
 	Key           []byte
 	Value         []byte
 	DatabaseIndex uint8
 }
 
+// Perform a deep copy of a LevelDbRecord.
 func (record *LevelDbRecord) Copy() *LevelDbRecord {
 	return &LevelDbRecord{
 		Key:           []byte(record.Key),
@@ -21,6 +27,11 @@ type Transformer interface {
 	Do(inputChan, outputChan chan *LevelDbRecord)
 }
 
+// Read records from reader, pass them to transformer and read results from
+// transformer and write them to writer. Do not exit until all records have been
+// processed. Running transformers is a fundamental data processing operation,
+// but you should almost never run this function directly. Instead, use
+// RunPipeline to run a series of pipeline stages.
 func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWriter) {
 	inputChan := make(chan *LevelDbRecord)
 	outputChan := make(chan *LevelDbRecord)

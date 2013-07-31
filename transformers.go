@@ -57,6 +57,7 @@ type MultipleOutputsGroupDoer interface {
 	GroupDoToMultipleOutputs(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord)
 }
 
+// Turn a Mapper into a Transformer.
 func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
 	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
 		outputChan <- mapper.Map(inputRecord)
@@ -64,6 +65,7 @@ func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
 	return MakeDoFunc(doFunc, numConcurrent)
 }
 
+// Turn a Doer into a Transformer.
 func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
 	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
 		doneChan := make(chan bool)
@@ -81,6 +83,7 @@ func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
 	})
 }
 
+// Turn a MultpleOutputsDoer into a Transformer.
 func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numConcurrent int) Transformer {
 	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
 		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
@@ -108,6 +111,7 @@ func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numC
 	return MakeDoFunc(doFunc, numConcurrent)
 }
 
+// Turn a GroupDoer into a Transformer.
 func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
 		doneChan := make(chan bool)
@@ -143,6 +147,7 @@ func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 	})
 }
 
+// Turn a MultipleOutputsGroupDoer into a Transformer.
 func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOutputs, numConcurrent int) Transformer {
 	groupDoFunc := func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
 		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
