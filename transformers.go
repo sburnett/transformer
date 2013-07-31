@@ -2,6 +2,8 @@ package transformer
 
 import (
 	"bytes"
+
+	"github.com/sburnett/transformer/store"
 )
 
 // Map each input record to 0 or 1 output records. This is the simplest and most
@@ -12,21 +14,21 @@ import (
 // Map will be invoked concurrently from many goroutines, so access to shared
 // state must be synchronized.
 type Mapper interface {
-	Map(inputRecord *LevelDbRecord) (outputRecord *LevelDbRecord)
+	Map(inputRecord *store.Record) (outputRecord *store.Record)
 }
 
 // Map each input record to an arbitrary number of output records on one output
 // channel. Do will be invoked concurrently from many goroutines, so access to
 // shared state must be synchronized.
 type Doer interface {
-	Do(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord)
+	Do(inputRecord *store.Record, outputChan chan *store.Record)
 }
 
 // Map each input record to many output records on multiple output channels.
 // DoToMultipleOutputs will be invoked concurrently from many goroutines, so access to
 // shared state must be synchronized.
 type MultipleOutputsDoer interface {
-	DoToMultipleOutputs(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord)
+	DoToMultipleOutputs(inputRecord *store.Record, outputChans ...chan *store.Record)
 }
 
 // Map input records from several sources to an arbitrary number of output
@@ -40,7 +42,7 @@ type MultipleOutputsDoer interface {
 // GroupDo will be invoked concurrently from many goroutines, so access to
 // shared state must be synchronized.
 type GroupDoer interface {
-	GroupDo(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord)
+	GroupDo(inputRecords []*store.Record, outputChan chan *store.Record)
 }
 
 // Map input records from several sources to an arbitrary number of output
@@ -54,12 +56,12 @@ type GroupDoer interface {
 // GroupDo will be invoked concurrently from many goroutines, so access to
 // shared state must be synchronized.
 type MultipleOutputsGroupDoer interface {
-	GroupDoToMultipleOutputs(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord)
+	GroupDoToMultipleOutputs(inputRecords []*store.Record, outputChans ...chan *store.Record)
 }
 
 // Turn a Mapper into a Transformer.
 func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
-	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
+	doFunc := func(inputRecord *store.Record, outputChan chan *store.Record) {
 		outputChan <- mapper.Map(inputRecord)
 	}
 	return MakeDoFunc(doFunc, numConcurrent)
@@ -67,7 +69,7 @@ func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
 
 // Turn a Doer into a Transformer.
 func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
-	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
+	return TransformFunc(func(inputChan, outputChan chan *store.Record) {
 		doneChan := make(chan bool)
 		for i := 0; i < numConcurrent; i++ {
 			go func() {
@@ -85,11 +87,11 @@ func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
 
 // Turn a MultpleOutputsDoer into a Transformer.
 func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numConcurrent int) Transformer {
-	doFunc := func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
-		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
+	doFunc := func(inputRecord *store.Record, outputChan chan *store.Record) {
+		outputChans := make([]chan *store.Record, numOutputs, numOutputs)
 		doneChan := make(chan bool)
 		for idx := range outputChans {
-			outputChans[idx] = make(chan *LevelDbRecord)
+			outputChans[idx] = make(chan *store.Record)
 		}
 		for i := 0; i < numOutputs; i++ {
 			go func(idx int) {
@@ -113,9 +115,9 @@ func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numC
 
 // Turn a GroupDoer into a Transformer.
 func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
-	return TransformFunc(func(inputChan, outputChan chan *LevelDbRecord) {
+	return TransformFunc(func(inputChan, outputChan chan *store.Record) {
 		doneChan := make(chan bool)
-		groupedInputsChan := make(chan []*LevelDbRecord)
+		groupedInputsChan := make(chan []*store.Record)
 		for i := 0; i < numConcurrent; i++ {
 			go func() {
 				for record := range groupedInputsChan {
@@ -125,7 +127,7 @@ func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 			}()
 		}
 		var currentKey []byte
-		var currentRecords []*LevelDbRecord
+		var currentRecords []*store.Record
 		for record := range inputChan {
 			if currentKey == nil {
 				currentKey = record.Key
@@ -149,11 +151,11 @@ func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 
 // Turn a MultipleOutputsGroupDoer into a Transformer.
 func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOutputs, numConcurrent int) Transformer {
-	groupDoFunc := func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
-		outputChans := make([]chan *LevelDbRecord, numOutputs, numOutputs)
+	groupDoFunc := func(inputRecords []*store.Record, outputChan chan *store.Record) {
+		outputChans := make([]chan *store.Record, numOutputs, numOutputs)
 		doneChan := make(chan bool)
 		for idx := range outputChans {
-			outputChans[idx] = make(chan *LevelDbRecord)
+			outputChans[idx] = make(chan *store.Record)
 			go func(idx int) {
 				for record := range outputChans[idx] {
 					record.DatabaseIndex = uint8(idx)
@@ -173,39 +175,39 @@ func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOut
 	return MakeGroupDoFunc(groupDoFunc, numConcurrent)
 }
 
-type TransformFunc func(inputChan, outputChan chan *LevelDbRecord)
+type TransformFunc func(inputChan, outputChan chan *store.Record)
 
-type MapFunc func(inputRecord *LevelDbRecord) (outputRecord *LevelDbRecord)
+type MapFunc func(inputRecord *store.Record) (outputRecord *store.Record)
 
-type DoFunc func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord)
+type DoFunc func(inputRecord *store.Record, outputChan chan *store.Record)
 
-type MultipleOutputsDoFunc func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord)
+type MultipleOutputsDoFunc func(inputRecord *store.Record, outputChans ...chan *store.Record)
 
-type GroupDoFunc func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord)
+type GroupDoFunc func(inputRecords []*store.Record, outputChan chan *store.Record)
 
-type MultipleOutputsGroupDoFunc func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord)
+type MultipleOutputsGroupDoFunc func(inputRecords []*store.Record, outputChans ...chan *store.Record)
 
-func (transformer TransformFunc) Do(inputChan, outputChan chan *LevelDbRecord) {
+func (transformer TransformFunc) Do(inputChan, outputChan chan *store.Record) {
 	transformer(inputChan, outputChan)
 }
 
-func (mapFunc MapFunc) Map(inputRecord *LevelDbRecord) *LevelDbRecord {
+func (mapFunc MapFunc) Map(inputRecord *store.Record) *store.Record {
 	return mapFunc(inputRecord)
 }
 
-func (doFunc DoFunc) Do(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
+func (doFunc DoFunc) Do(inputRecord *store.Record, outputChan chan *store.Record) {
 	doFunc(inputRecord, outputChan)
 }
 
-func (multipleOutputsDoFunc MultipleOutputsDoFunc) DoToMultipleOutputs(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
+func (multipleOutputsDoFunc MultipleOutputsDoFunc) DoToMultipleOutputs(inputRecord *store.Record, outputChans ...chan *store.Record) {
 	multipleOutputsDoFunc(inputRecord, outputChans...)
 }
 
-func (groupDoFunc GroupDoFunc) GroupDo(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
+func (groupDoFunc GroupDoFunc) GroupDo(inputRecords []*store.Record, outputChan chan *store.Record) {
 	groupDoFunc(inputRecords, outputChan)
 }
 
-func (multipleOutputsGroupDoFunc MultipleOutputsGroupDoFunc) GroupDoToMultipleOutputs(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord) {
+func (multipleOutputsGroupDoFunc MultipleOutputsGroupDoFunc) GroupDoToMultipleOutputs(inputRecords []*store.Record, outputChans ...chan *store.Record) {
 	multipleOutputsGroupDoFunc(inputRecords, outputChans...)
 }
 

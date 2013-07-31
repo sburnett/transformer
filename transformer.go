@@ -1,30 +1,14 @@
 package transformer
 
-// This represents a single entry in a LevelDb database and is the foundation of
-// record processing.
-//
-// You will find github.com/sburnett/transformer/key very helpful for encoding
-// and decoding Keys and Values.
-type LevelDbRecord struct {
-	Key           []byte
-	Value         []byte
-	DatabaseIndex uint8
-}
-
-// Perform a deep copy of a LevelDbRecord.
-func (record *LevelDbRecord) Copy() *LevelDbRecord {
-	return &LevelDbRecord{
-		Key:           []byte(record.Key),
-		Value:         []byte(record.Value),
-		DatabaseIndex: record.DatabaseIndex,
-	}
-}
+import (
+	"github.com/sburnett/transformer/store"
+)
 
 // This is the type of general transformations on data stored in LevelDB. Use
 // one of the more specialized transformers when possible since they can
 // parallize computation across multiple cores.
 type Transformer interface {
-	Do(inputChan, outputChan chan *LevelDbRecord)
+	Do(inputChan, outputChan chan *store.Record)
 }
 
 // Read records from reader, pass them to transformer and read results from
@@ -32,9 +16,9 @@ type Transformer interface {
 // processed. Running transformers is a fundamental data processing operation,
 // but you should almost never run this function directly. Instead, use
 // RunPipeline to run a series of pipeline stages.
-func RunTransformer(transformer Transformer, reader StoreReader, writer StoreWriter) {
-	inputChan := make(chan *LevelDbRecord)
-	outputChan := make(chan *LevelDbRecord)
+func RunTransformer(transformer Transformer, reader store.Reader, writer store.Writer) {
+	inputChan := make(chan *store.Record)
+	outputChan := make(chan *store.Record)
 
 	if reader != nil {
 		go func() {

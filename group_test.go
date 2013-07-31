@@ -4,16 +4,17 @@ import (
 	"fmt"
 
 	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/transformer/store"
 )
 
-func makeRecord(values ...interface{}) *LevelDbRecord {
-	return &LevelDbRecord{
+func makeRecord(values ...interface{}) *store.Record {
+	return &store.Record{
 		Key: key.EncodeOrDie(values...),
 	}
 }
 
 func ExampleGrouper() {
-	records := make(chan *LevelDbRecord, 10)
+	records := make(chan *store.Record, 10)
 	records <- makeRecord("hello", int32(10), "foo")
 	records <- makeRecord("hello", int32(10), "bar")
 	records <- makeRecord("hello", int32(10), "baz")

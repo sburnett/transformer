@@ -1,4 +1,4 @@
-package transformer
+package store
 
 import (
 	"bytes"
@@ -18,14 +18,14 @@ func ExampleLevelDbStore_readWrite() {
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
 	}
-	writeRecord := func(record *LevelDbRecord) {
+	writeRecord := func(record *Record) {
 		if err := store.WriteRecord(record); err != nil {
 			panic(err)
 		}
 	}
-	writeRecord(makeLevelDbRecord("a", "x", 0))
-	writeRecord(makeLevelDbRecord("c", "z", 0))
-	writeRecord(makeLevelDbRecord("b", "y", 0))
+	writeRecord(NewRecord("a", "x", 0))
+	writeRecord(NewRecord("c", "z", 0))
+	writeRecord(NewRecord("b", "y", 0))
 	if err := store.EndWriting(); err != nil {
 		panic(err)
 	}
@@ -68,16 +68,16 @@ func ExampleLevelDbStore_seek() {
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
 	}
-	writeRecord := func(record *LevelDbRecord) {
+	writeRecord := func(record *Record) {
 		if err := store.WriteRecord(record); err != nil {
 			panic(err)
 		}
 	}
-	writeRecord(makeLevelDbRecord("a", "x", 0))
-	writeRecord(makeLevelDbRecord("b", "y", 0))
-	writeRecord(makeLevelDbRecord("c", "z", 0))
-	writeRecord(makeLevelDbRecord("d", "x", 0))
-	writeRecord(makeLevelDbRecord("f", "y", 0))
+	writeRecord(NewRecord("a", "x", 0))
+	writeRecord(NewRecord("b", "y", 0))
+	writeRecord(NewRecord("c", "z", 0))
+	writeRecord(NewRecord("d", "x", 0))
+	writeRecord(NewRecord("f", "y", 0))
 	if err := store.EndWriting(); err != nil {
 		panic(err)
 	}
@@ -126,14 +126,14 @@ func ExampleLevelDbStore_deleteAll() {
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
 	}
-	writeRecord := func(record *LevelDbRecord) {
+	writeRecord := func(record *Record) {
 		if err := store.WriteRecord(record); err != nil {
 			panic(err)
 		}
 	}
-	writeRecord(makeLevelDbRecord("a", "x", 0))
-	writeRecord(makeLevelDbRecord("c", "z", 0))
-	writeRecord(makeLevelDbRecord("b", "y", 0))
+	writeRecord(NewRecord("a", "x", 0))
+	writeRecord(NewRecord("c", "z", 0))
+	writeRecord(NewRecord("b", "y", 0))
 	if err := store.EndWriting(); err != nil {
 		panic(err)
 	}

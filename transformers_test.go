@@ -3,23 +3,25 @@ package transformer
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/sburnett/transformer/store"
 )
 
 func ExampleMapper() {
-	mapper := MakeMapFunc(func(inputRecord *LevelDbRecord) *LevelDbRecord {
-		return &LevelDbRecord{
+	mapper := MakeMapFunc(func(inputRecord *store.Record) *store.Record {
+		return &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 		}
 	}, 1)
 
-	inputChan := make(chan *LevelDbRecord, 3)
-	inputChan <- makeLevelDbRecord("a", "b", 0)
-	inputChan <- makeLevelDbRecord("c", "d", 0)
-	inputChan <- makeLevelDbRecord("e", "f", 0)
+	inputChan := make(chan *store.Record, 3)
+	inputChan <- store.NewRecord("a", "b", 0)
+	inputChan <- store.NewRecord("c", "d", 0)
+	inputChan <- store.NewRecord("e", "f", 0)
 	close(inputChan)
 
-	outputChan := make(chan *LevelDbRecord, 3)
+	outputChan := make(chan *store.Record, 3)
 
 	mapper.Do(inputChan, outputChan)
 	close(outputChan)
@@ -35,24 +37,24 @@ func ExampleMapper() {
 }
 
 func ExampleDoer() {
-	doer := MakeDoFunc(func(inputRecord *LevelDbRecord, outputChan chan *LevelDbRecord) {
-		outputChan <- &LevelDbRecord{
+	doer := MakeDoFunc(func(inputRecord *store.Record, outputChan chan *store.Record) {
+		outputChan <- &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 		}
-		outputChan <- &LevelDbRecord{
+		outputChan <- &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 		}
 	}, 1)
 
-	inputChan := make(chan *LevelDbRecord, 3)
-	inputChan <- makeLevelDbRecord("a", "b", 0)
-	inputChan <- makeLevelDbRecord("c", "d", 0)
-	inputChan <- makeLevelDbRecord("e", "f", 0)
+	inputChan := make(chan *store.Record, 3)
+	inputChan <- store.NewRecord("a", "b", 0)
+	inputChan <- store.NewRecord("c", "d", 0)
+	inputChan <- store.NewRecord("e", "f", 0)
 	close(inputChan)
 
-	outputChan := make(chan *LevelDbRecord, 6)
+	outputChan := make(chan *store.Record, 6)
 
 	doer.Do(inputChan, outputChan)
 	close(outputChan)
@@ -71,24 +73,24 @@ func ExampleDoer() {
 }
 
 func ExampleMultipleOutputsDoer() {
-	multiDoer := MakeMultipleOutputsDoFunc(func(inputRecord *LevelDbRecord, outputChans ...chan *LevelDbRecord) {
-		outputChans[0] <- &LevelDbRecord{
+	multiDoer := MakeMultipleOutputsDoFunc(func(inputRecord *store.Record, outputChans ...chan *store.Record) {
+		outputChans[0] <- &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 		}
-		outputChans[1] <- &LevelDbRecord{
+		outputChans[1] <- &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 		}
 	}, 2, 1)
 
-	inputChan := make(chan *LevelDbRecord, 3)
-	inputChan <- makeLevelDbRecord("a", "b", 0)
-	inputChan <- makeLevelDbRecord("c", "d", 0)
-	inputChan <- makeLevelDbRecord("e", "f", 0)
+	inputChan := make(chan *store.Record, 3)
+	inputChan <- store.NewRecord("a", "b", 0)
+	inputChan <- store.NewRecord("c", "d", 0)
+	inputChan <- store.NewRecord("e", "f", 0)
 	close(inputChan)
 
-	outputChan := make(chan *LevelDbRecord, 6)
+	outputChan := make(chan *store.Record, 6)
 
 	multiDoer.Do(inputChan, outputChan)
 	close(outputChan)
@@ -107,16 +109,16 @@ func ExampleMultipleOutputsDoer() {
 }
 
 func ExampleGroupDoer() {
-	groupDoer := MakeGroupDoFunc(func(inputRecords []*LevelDbRecord, outputChan chan *LevelDbRecord) {
+	groupDoer := MakeGroupDoFunc(func(inputRecords []*store.Record, outputChan chan *store.Record) {
 		for _, inputRecord := range inputRecords {
 			switch inputRecord.DatabaseIndex {
 			case 0:
-				outputChan <- &LevelDbRecord{
+				outputChan <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 				}
 			case 1:
-				outputChan <- &LevelDbRecord{
+				outputChan <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 				}
@@ -124,14 +126,14 @@ func ExampleGroupDoer() {
 		}
 	}, 1)
 
-	inputChan := make(chan *LevelDbRecord, 4)
-	inputChan <- makeLevelDbRecord("a", "b", 0)
-	inputChan <- makeLevelDbRecord("c", "d", 1)
-	inputChan <- makeLevelDbRecord("e", "f", 0)
-	inputChan <- makeLevelDbRecord("g", "h", 1)
+	inputChan := make(chan *store.Record, 4)
+	inputChan <- store.NewRecord("a", "b", 0)
+	inputChan <- store.NewRecord("c", "d", 1)
+	inputChan <- store.NewRecord("e", "f", 0)
+	inputChan <- store.NewRecord("g", "h", 1)
 	close(inputChan)
 
-	outputChan := make(chan *LevelDbRecord, 4)
+	outputChan := make(chan *store.Record, 4)
 
 	groupDoer.Do(inputChan, outputChan)
 	close(outputChan)
@@ -148,24 +150,24 @@ func ExampleGroupDoer() {
 }
 
 func ExampleMultipleOutputsGroupDoer() {
-	multiGroupDoer := MakeMultipleOutputsGroupDoFunc(func(inputRecords []*LevelDbRecord, outputChans ...chan *LevelDbRecord) {
+	multiGroupDoer := MakeMultipleOutputsGroupDoFunc(func(inputRecords []*store.Record, outputChans ...chan *store.Record) {
 		for _, inputRecord := range inputRecords {
 			switch inputRecord.DatabaseIndex {
 			case 0:
-				outputChans[0] <- &LevelDbRecord{
+				outputChans[0] <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 				}
-				outputChans[1] <- &LevelDbRecord{
+				outputChans[1] <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte("/")),
 				}
 			case 1:
-				outputChans[0] <- &LevelDbRecord{
+				outputChans[0] <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 				}
-				outputChans[1] <- &LevelDbRecord{
+				outputChans[1] <- &store.Record{
 					Key:   inputRecord.Key,
 					Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte("|")),
 				}
@@ -173,13 +175,13 @@ func ExampleMultipleOutputsGroupDoer() {
 		}
 	}, 2, 1)
 
-	inputChan := make(chan *LevelDbRecord, 3)
-	inputChan <- makeLevelDbRecord("a", "b", 0)
-	inputChan <- makeLevelDbRecord("c", "d", 1)
-	inputChan <- makeLevelDbRecord("e", "f", 0)
+	inputChan := make(chan *store.Record, 3)
+	inputChan <- store.NewRecord("a", "b", 0)
+	inputChan <- store.NewRecord("c", "d", 1)
+	inputChan <- store.NewRecord("e", "f", 0)
 	close(inputChan)
 
-	outputChan := make(chan *LevelDbRecord, 6)
+	outputChan := make(chan *store.Record, 6)
 
 	multiGroupDoer.Do(inputChan, outputChan)
 	close(outputChan)

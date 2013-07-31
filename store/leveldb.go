@@ -1,4 +1,4 @@
-package transformer
+package store
 
 import (
 	"expvar"
@@ -78,12 +78,12 @@ func (store *LevelDbStore) BeginReading() error {
 	return nil
 }
 
-func (store *LevelDbStore) ReadRecord() (*LevelDbRecord, error) {
+func (store *LevelDbStore) ReadRecord() (*Record, error) {
 	if !store.readIterator.Valid() {
 		return nil, store.readIterator.GetError()
 	}
 
-	record := &LevelDbRecord{
+	record := &Record{
 		Key:   store.readIterator.Key(),
 		Value: store.readIterator.Value(),
 	}
@@ -116,7 +116,7 @@ func (store *LevelDbStore) BeginWriting() error {
 	return nil
 }
 
-func (store *LevelDbStore) WriteRecord(record *LevelDbRecord) error {
+func (store *LevelDbStore) WriteRecord(record *Record) error {
 	if err := store.db.Put(store.writeOptions, record.Key, record.Value); err != nil {
 		return fmt.Errorf("Error writing to database: %v", err)
 	}

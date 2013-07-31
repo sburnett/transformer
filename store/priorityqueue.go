@@ -1,4 +1,4 @@
-package transformer
+package store
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ type Priority struct {
 
 // An Item is something we manage in a priority queue.
 type Item struct {
-	record   *LevelDbRecord
-	reader   StoreReader
+	record   *Record
+	reader   Reader
 	priority Priority // The priority of the item in the queue.
 	// The index is needed by changePriority and is maintained by the heap.Interface methods.
 	index int // The index of the item in the heap.

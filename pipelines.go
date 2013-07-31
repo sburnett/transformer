@@ -3,13 +3,18 @@ package transformer
 import (
 	"expvar"
 	"log"
+
+	"github.com/sburnett/transformer/store"
 )
 
+// A pipeline stage is a single step of data processing, which reads data from
+// Reader, sends each record to Transformer, and writes the resulting Records to
+// Writer. The Name is purely informational.
 type PipelineStage struct {
 	Name        string
 	Transformer Transformer
-	Reader      StoreReader
-	Writer      StoreWriter
+	Reader      store.Reader
+	Writer      store.Writer
 }
 
 var stagesDone *expvar.Int

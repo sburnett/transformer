@@ -4,13 +4,14 @@ import (
 	"bytes"
 
 	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/transformer/store"
 )
 
 type Grouper struct {
-	inputChan                 chan *LevelDbRecord
+	inputChan                 chan *store.Record
 	prefixValues              []interface{}
 	CurrentGroupPrefix        []byte
-	currentRecord, nextRecord *LevelDbRecord
+	currentRecord, nextRecord *store.Record
 }
 
 // Construct a new Grouper by reading records from the provided input channel and
@@ -68,20 +69,20 @@ type Grouper struct {
 //
 // In each case, the Grouper groups records together when they share the same
 // values for each argument passed to GroupRecords.
-func GroupRecords(inputChan chan *LevelDbRecord, prefixValues ...interface{}) *Grouper {
+func GroupRecords(inputChan chan *store.Record, prefixValues ...interface{}) *Grouper {
 	return &Grouper{
 		inputChan:    inputChan,
 		prefixValues: prefixValues,
 	}
 }
 
-func (grouper *Grouper) readRecord() *LevelDbRecord {
+func (grouper *Grouper) readRecord() *store.Record {
 	newRecord, ok := <-grouper.inputChan
 	if !ok {
 		return nil
 	}
 	if newRecord == nil {
-		panic("LevelDbRecords should never be nil")
+		panic("Records should never be nil")
 	}
 	return newRecord
 }
@@ -130,6 +131,6 @@ func (grouper *Grouper) NextRecord() bool {
 // Read the current record in the current group. This will return nil if there
 // is no record, which can happen when we reach the end of a group and haven't
 // called NextGroup to advance to the next group.
-func (grouper *Grouper) Read() *LevelDbRecord {
+func (grouper *Grouper) Read() *store.Record {
 	return grouper.currentRecord
 }
