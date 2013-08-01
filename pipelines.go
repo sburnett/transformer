@@ -30,9 +30,11 @@ func init() {
 	currentStage = expvar.NewString("CurrentStage")
 }
 
+type PipelineFunc func(dbRoot string, workers int) []PipelineStage
+
 // Convenience function to parse command line arguments, figure out which
 // pipeline to run and configure that pipeline to run.
-func ParsePipelineChoice(getPipelineFuncs func(string, int) map[string]func() []PipelineStage) (string, []PipelineStage) {
+func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, []PipelineStage) {
 	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
 	skipStages := flag.Int("skip_stages", 0, "Skip this many stages at the beginning of the pipeline.")
 	flag.Usage = func() {
@@ -47,7 +49,6 @@ func ParsePipelineChoice(getPipelineFuncs func(string, int) map[string]func() []
 	dbRoot := flag.Arg(0)
 	pipelineName := flag.Arg(1)
 
-	pipelineFuncs := getPipelineFuncs(dbRoot, *workers)
 	pipelineFunc, ok := pipelineFuncs[pipelineName]
 	if !ok {
 		flag.Usage()
@@ -59,7 +60,7 @@ func ParsePipelineChoice(getPipelineFuncs func(string, int) map[string]func() []
 		fmt.Println("Possible pipelines:", strings.Join(pipelineNames, ", "))
 		os.Exit(1)
 	}
-	pipeline := pipelineFunc()
+	pipeline := pipelineFunc(dbRoot, *workers)
 	return pipelineName, pipeline[*skipStages:]
 }
 
