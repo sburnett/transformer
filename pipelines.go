@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/sburnett/transformer/store"
@@ -54,6 +55,7 @@ func ParsePipelineChoice(getPipelineFuncs func(string, int) map[string]func() []
 		for name := range pipelineFuncs {
 			pipelineNames = append(pipelineNames, name)
 		}
+		sort.Strings(pipelineNames)
 		fmt.Println("Possible pipelines:", strings.Join(pipelineNames, ", "))
 		os.Exit(1)
 	}
