@@ -38,8 +38,17 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, []Pipel
 	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
 	skipStages := flag.Int("skip_stages", 0, "Skip this many stages at the beginning of the pipeline.")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s <db root> <pipeline>:\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage of %s [global flags] <database root> <pipeline> [pipeline flags]:\n", os.Args[0])
+		fmt.Fprintln(os.Stderr, " [global flags] can be:")
 		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, " <database root> is a directory where we store multiple LevelDB databases.")
+		var pipelineNames []string
+		for name := range pipelineFuncs {
+			pipelineNames = append(pipelineNames, name)
+		}
+		sort.Strings(pipelineNames)
+		fmt.Fprintln(os.Stderr, " <pipeline> is one of these:", strings.Join(pipelineNames, ", "))
+		fmt.Fprintln(os.Stderr, " Pass '-help' to a pipeline to see [pipeline flags]")
 	}
 	flag.Parse()
 	if flag.NArg() < 2 {
@@ -51,13 +60,8 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, []Pipel
 
 	pipelineFunc, ok := pipelineFuncs[pipelineName]
 	if !ok {
+		fmt.Fprintf(os.Stderr, "Invalid pipeline!\n\n")
 		flag.Usage()
-		var pipelineNames []string
-		for name := range pipelineFuncs {
-			pipelineNames = append(pipelineNames, name)
-		}
-		sort.Strings(pipelineNames)
-		fmt.Println("Possible pipelines:", strings.Join(pipelineNames, ", "))
 		os.Exit(1)
 	}
 	pipeline := pipelineFunc(dbRoot, *workers)
