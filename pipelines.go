@@ -2,7 +2,11 @@ package transformer
 
 import (
 	"expvar"
+	"flag"
+	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/sburnett/transformer/store"
 )
@@ -25,12 +29,44 @@ func init() {
 	currentStage = expvar.NewString("CurrentStage")
 }
 
-// Run a set of pipeline stages, skipping the first skipStages. We run stages
+// Convenience function to parse command line arguments, figure out which
+// pipeline to run and configure that pipeline to run.
+func ParsePipelineChoice(getPipelineFuncs func(string, int) map[string]func() []PipelineStage) (string, []PipelineStage) {
+	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
+	skipStages := flag.Int("skip_stages", 0, "Skip this many stages at the beginning of the pipeline.")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s <db root> <pipeline>:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+	if flag.NArg() < 2 {
+		flag.Usage()
+		os.Exit(1)
+	}
+	dbRoot := flag.Arg(0)
+	pipelineName := flag.Arg(1)
+
+	pipelineFuncs := getPipelineFuncs(dbRoot, *workers)
+	pipelineFunc, ok := pipelineFuncs[pipelineName]
+	if !ok {
+		flag.Usage()
+		var pipelineNames []string
+		for name := range pipelineFuncs {
+			pipelineNames = append(pipelineNames, name)
+		}
+		fmt.Println("Possible pipelines:", strings.Join(pipelineNames, ", "))
+		os.Exit(1)
+	}
+	pipeline := pipelineFunc()
+	return pipelineName, pipeline[*skipStages:]
+}
+
+// Run a set of pipeline stages. We run stages
 // sequentially, with no parallelism between stages.
-func RunPipeline(stages []PipelineStage, skipStages int) {
-	for idx, stage := range stages[skipStages:] {
+func RunPipeline(pipeline []PipelineStage) {
+	for idx, stage := range pipeline {
 		currentStage.Set(stage.Name)
-		log.Printf("Running pipeline stage %v (%v)", idx+skipStages, stage.Name)
+		log.Printf("Running pipeline stage %v (%v)", idx, stage.Name)
 		RunTransformer(stage.Transformer, stage.Reader, stage.Writer)
 		stagesDone.Add(1)
 	}
