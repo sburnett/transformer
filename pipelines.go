@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/sburnett/transformer/store"
 )
 
@@ -22,6 +23,16 @@ type PipelineStage struct {
 	Writer      store.Writer
 }
 
+type Pipeline []PipelineStage
+
+func (pipeline Pipeline) StageNames() []string {
+	var names []string
+	for _, stage := range pipeline {
+		names = append(names, stage.Name)
+	}
+	return names
+}
+
 var stagesDone *expvar.Int
 var currentStage *expvar.String
 
@@ -30,13 +41,15 @@ func init() {
 	currentStage = expvar.NewString("CurrentStage")
 }
 
-type PipelineFunc func(dbRoot string, workers int) []PipelineStage
+type PipelineFunc func(dbRoot string, workers int) Pipeline
 
 // Convenience function to parse command line arguments, figure out which
 // pipeline to run and configure that pipeline to run.
-func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, []PipelineStage) {
+func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipeline) {
 	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
-	skipStages := flag.Int("skip_stages", 0, "Skip this many stages at the beginning of the pipeline.")
+	runOnly := flag.String("run_only", "", "Comma separated list of stages to run.")
+	runAfter := flag.String("run_after", "", "Run this stage and all stages following it.")
+	listStages := flag.Bool("list_stages", false, "List the stages in the pipeline and exit.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s [global flags] <database root> <pipeline> [pipeline flags]:\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, " [global flags] can be:")
@@ -65,15 +78,52 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, []Pipel
 		os.Exit(1)
 	}
 	pipeline := pipelineFunc(dbRoot, *workers)
-	return pipelineName, pipeline[*skipStages:]
+	if *listStages {
+		fmt.Fprintln(os.Stderr, strings.Join(pipeline.StageNames(), ", "))
+		os.Exit(0)
+	}
+	if len(*runOnly) > 0 {
+		stageNames := strings.Split(*runOnly, ",")
+		var stagesToRun []PipelineStage
+		for _, stageName := range stageNames {
+			foundStage := false
+			for _, stage := range pipeline {
+				if stage.Name == stageName {
+					stagesToRun = append(stagesToRun, stage)
+					foundStage = true
+					break
+				}
+			}
+			if !foundStage {
+				fmt.Fprintf(os.Stderr, "Invalid stage in pipeline %s\n", pipelineName)
+				fmt.Fprintf(os.Stderr, "Possible stages: %s\n", strings.Join(pipeline.StageNames(), ", "))
+				os.Exit(1)
+			}
+		}
+		return pipelineName, stagesToRun
+	}
+	if len(*runAfter) > 0 {
+		stageNames := strings.Split(*runAfter, ",")
+		for idx, stage := range pipeline {
+			for _, stageName := range stageNames {
+				if stage.Name == stageName {
+					return pipelineName, pipeline[idx:]
+				}
+			}
+		}
+		fmt.Fprintf(os.Stderr, "Invalid stage in pipeline %s\n", pipelineName)
+		fmt.Fprintf(os.Stderr, "Possible stages: %s\n", strings.Join(pipeline.StageNames(), ", "))
+		os.Exit(1)
+	}
+	return pipelineName, pipeline
 }
 
 // Run a set of pipeline stages. We run stages
 // sequentially, with no parallelism between stages.
-func RunPipeline(pipeline []PipelineStage) {
+func RunPipeline(pipeline Pipeline) {
 	for idx, stage := range pipeline {
 		currentStage.Set(stage.Name)
-		log.Printf("Running pipeline stage %v (%v)", idx, stage.Name)
+		log.Printf("Running %s pipeline stage: %v", humanize.Ordinal(idx + 1), stage.Name)
 		RunTransformer(stage.Transformer, stage.Reader, stage.Writer)
 		stagesDone.Add(1)
 	}
