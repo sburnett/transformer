@@ -20,9 +20,11 @@ func NewCsvStore(writer io.Writer, keyColumnNames, valueColumnNames []string, co
 		panic("Number of column names must match the number of columns")
 	}
 	return &CsvStore{
-		writer:         csv.NewWriter(writer),
-		keyVariables:   columns[:len(keyColumnNames)],
-		valueVariables: columns[len(keyColumnNames):],
+		writer:           csv.NewWriter(writer),
+		keyColumnNames:   keyColumnNames,
+		valueColumnNames: valueColumnNames,
+		keyVariables:     columns[:len(keyColumnNames)],
+		valueVariables:   columns[len(keyColumnNames):],
 	}
 }
 

@@ -42,6 +42,7 @@ func ExampleCsvStore_write() {
 
 	// Output:
 	//
+	// first_name,last_name,party,birth_year
 	// George,Washington,Independent,1732
 	// John,Adams,Federalist,1735
 	// Thomas,Jefferson,Democratic-Republican,1743
