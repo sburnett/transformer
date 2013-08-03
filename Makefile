@@ -1,6 +1,8 @@
 LIBLEVELDB   = /usr/local/lib/libleveldb*
 
-.PHONY: travis
+.PHONY: all travis
+
+all: travis
 
 travis: $(LIBLEVELDB)
 
