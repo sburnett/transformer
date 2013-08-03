@@ -123,7 +123,7 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 func RunPipeline(pipeline Pipeline) {
 	for idx, stage := range pipeline {
 		currentStage.Set(stage.Name)
-		log.Printf("Running %s pipeline stage: %v", humanize.Ordinal(idx + 1), stage.Name)
+		log.Printf("Running %s pipeline stage: %v", humanize.Ordinal(idx+1), stage.Name)
 		RunTransformer(stage.Transformer, stage.Reader, stage.Writer)
 		stagesDone.Add(1)
 	}
