@@ -3,7 +3,7 @@ package transformer
 import (
 	"bytes"
 
-	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/lexicographic-tuples"
 	"github.com/sburnett/transformer/store"
 )
 
@@ -37,7 +37,7 @@ type Grouper struct {
 //      for grouper.NextRecord() {
 //        record := grouper.Read()
 //        var spending
-//        key.DecodeOrDie(record.Key, &spending)
+//        lex.DecodeOrDie(record.Key, &spending)
 //        monthlySpending += spending
 //      }
 //      fmt.Printf("%s spent $%d in %d-%d", name, monthlySpending, year, month)
@@ -61,7 +61,7 @@ type Grouper struct {
 //      for grouper.NextRecord() {
 //        record := grouper.Read()
 //        var month, spending
-//        key.DecodeOrDie(record.Key, &month, &spending)
+//        lex.DecodeOrDie(record.Key, &month, &spending)
 //        yearlySpending += spending
 //      }
 //      fmt.Printf("%s spent $%d in %d", name, yearlySpending, year)
@@ -99,7 +99,7 @@ func (grouper *Grouper) NextGroup() bool {
 	if grouper.nextRecord == nil {
 		return false
 	}
-	newPrefix, _ := key.DecodeAndSplitOrDie(grouper.nextRecord.Key, grouper.prefixValues...)
+	newPrefix, _ := lex.DecodeAndSplitOrDie(grouper.nextRecord.Key, grouper.prefixValues...)
 	grouper.CurrentGroupPrefix = newPrefix
 	return true
 }

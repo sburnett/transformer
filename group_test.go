@@ -3,13 +3,13 @@ package transformer
 import (
 	"fmt"
 
-	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/lexicographic-tuples"
 	"github.com/sburnett/transformer/store"
 )
 
 func makeRecord(values ...interface{}) *store.Record {
 	return &store.Record{
-		Key: key.EncodeOrDie(values...),
+		Key: lex.EncodeOrDie(values...),
 	}
 }
 
@@ -33,7 +33,7 @@ func ExampleGrouper() {
 		for grouper.NextRecord() {
 			record := grouper.Read()
 			var joinedString string
-			key.DecodeOrDie(record.Key, &joinedString)
+			lex.DecodeOrDie(record.Key, &joinedString)
 			fmt.Printf("[%d] %s %d %s\n", idx, stringKey, intKey, joinedString)
 			idx++
 		}

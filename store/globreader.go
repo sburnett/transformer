@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/lexicographic-tuples"
 )
 
 type GlobReader struct {
@@ -41,7 +41,7 @@ func (reader *GlobReader) ReadRecord() (*Record, error) {
 	if reader.cursor >= len(reader.filenames) {
 		return nil, nil
 	}
-	record := &Record{Key: key.EncodeOrDie(reader.filenames[reader.cursor])}
+	record := &Record{Key: lex.EncodeOrDie(reader.filenames[reader.cursor])}
 	return record, nil
 }
 

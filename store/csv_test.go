@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/lexicographic-tuples"
 )
 
 func ExampleCsvStore_write() {
@@ -23,16 +23,16 @@ func ExampleCsvStore_write() {
 		}
 	}
 	writeRecord(&Record{
-		Key:   key.EncodeOrDie("George", "Washington"),
-		Value: key.EncodeOrDie("Independent", int32(1732)),
+		Key:   lex.EncodeOrDie("George", "Washington"),
+		Value: lex.EncodeOrDie("Independent", int32(1732)),
 	})
 	writeRecord(&Record{
-		Key:   key.EncodeOrDie("John", "Adams"),
-		Value: key.EncodeOrDie("Federalist", int32(1735)),
+		Key:   lex.EncodeOrDie("John", "Adams"),
+		Value: lex.EncodeOrDie("Federalist", int32(1735)),
 	})
 	writeRecord(&Record{
-		Key:   key.EncodeOrDie("Thomas", "Jefferson"),
-		Value: key.EncodeOrDie("Democratic-Republican", int32(1743)),
+		Key:   lex.EncodeOrDie("Thomas", "Jefferson"),
+		Value: lex.EncodeOrDie("Democratic-Republican", int32(1743)),
 	})
 	if err := store.EndWriting(); err != nil {
 		panic(err)

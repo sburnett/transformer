@@ -6,7 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/sburnett/transformer/key"
+	"github.com/sburnett/lexicographic-tuples"
 )
 
 type CsvStore struct {
@@ -36,10 +36,10 @@ func (store *CsvStore) BeginWriting() error {
 }
 
 func (store *CsvStore) WriteRecord(record *Record) error {
-	if _, err := key.Decode(record.Key, store.keyVariables...); err != nil {
+	if _, err := lex.Decode(record.Key, store.keyVariables...); err != nil {
 		return err
 	}
-	if _, err := key.Decode(record.Value, store.valueVariables...); err != nil {
+	if _, err := lex.Decode(record.Value, store.valueVariables...); err != nil {
 		return err
 	}
 	var values []string
