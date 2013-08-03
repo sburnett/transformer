@@ -127,5 +127,5 @@ func RunPipeline(pipeline Pipeline) {
 		RunTransformer(stage.Transformer, stage.Reader, stage.Writer)
 		stagesDone.Add(1)
 	}
-	log.Printf("Done all pipelines.")
+	log.Printf("All stages complete")
 }
