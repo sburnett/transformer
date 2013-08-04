@@ -48,7 +48,7 @@ type PipelineFunc func(dbRoot string, workers int) Pipeline
 func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipeline) {
 	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
 	runOnly := flag.String("run_only", "", "Comma separated list of stages to run.")
-	runAfter := flag.String("run_after", "", "Run this stage and all stages following it.")
+	runAfter := flag.String("run_from", "", "Run this stage and all stages following it.")
 	listStages := flag.Bool("list_stages", false, "List the stages in the pipeline and exit.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s [global flags] <database root> <pipeline> [pipeline flags]:\n", os.Args[0])
