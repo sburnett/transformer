@@ -21,6 +21,7 @@ func init() {
 
 type LevelDbStore struct {
 	dbPath       string
+	readOnly     bool
 	dbOpenLock   sync.Mutex
 	readIterator *levigo.Iterator
 	readOptions  *levigo.ReadOptions
@@ -32,9 +33,10 @@ type LevelDbStore struct {
 // Create a DatastoreFull that can read and write to a LevelDB database.
 // Connections to this database are on-demand, so the database isn't locked
 // until you BeginReading or BeginWriting.
-func NewLevelDbStore(dbPath string) *LevelDbStore {
+func NewLevelDbStore(dbPath string, readOnly bool) *LevelDbStore {
 	return &LevelDbStore{
-		dbPath: dbPath,
+		dbPath:   dbPath,
+		readOnly: readOnly,
 	}
 }
 
@@ -44,7 +46,7 @@ func (store *LevelDbStore) openDatabase() error {
 	}
 	dbOpts := levigo.NewOptions()
 	dbOpts.SetMaxOpenFiles(128)
-	dbOpts.SetCreateIfMissing(true)
+	dbOpts.SetCreateIfMissing(!store.readOnly)
 	dbOpts.SetBlockSize(1 << 22) // 4 MB
 	db, err := levigo.Open(store.dbPath, dbOpts)
 	if err != nil {
@@ -181,20 +183,20 @@ func NewLevelDbManager(dbRoot string) Manager {
 	return levelDbManager(dbRoot)
 }
 
-func (dirname levelDbManager) open(params ...interface{}) *LevelDbStore {
+func (dirname levelDbManager) open(readOnly bool, params ...interface{}) *LevelDbStore {
 	if len(params) != 1 {
 		panic(fmt.Errorf("NewLevelDbStore accepts a single argument. the path of the store"))
 	}
 	basename := params[0].(string)
 	filename := filepath.Join(string(dirname), basename)
-	return NewLevelDbStore(filename)
+	return NewLevelDbStore(filename, readOnly)
 }
 
-func (m levelDbManager) Reader(params ...interface{}) Reader                 { return m.open(params...) }
-func (m levelDbManager) Writer(params ...interface{}) Writer                 { return m.open(params...) }
-func (m levelDbManager) Seeker(params ...interface{}) Seeker                 { return m.open(params...) }
-func (m levelDbManager) Deleter(params ...interface{}) Deleter               { return m.open(params...) }
-func (m levelDbManager) ReadingWriter(params ...interface{}) ReadingWriter   { return m.open(params...) }
-func (m levelDbManager) SeekingWriter(params ...interface{}) SeekingWriter   { return m.open(params...) }
-func (m levelDbManager) ReadingDeleter(params ...interface{}) ReadingDeleter { return m.open(params...) }
-func (m levelDbManager) SeekingDeleter(params ...interface{}) SeekingDeleter { return m.open(params...) }
+func (m levelDbManager) Reader(params ...interface{}) Reader                 { return m.open(true, params...) }
+func (m levelDbManager) Writer(params ...interface{}) Writer                 { return m.open(false, params...) }
+func (m levelDbManager) Seeker(params ...interface{}) Seeker                 { return m.open(true, params...) }
+func (m levelDbManager) Deleter(params ...interface{}) Deleter               { return m.open(false, params...) }
+func (m levelDbManager) ReadingWriter(params ...interface{}) ReadingWriter   { return m.open(false, params...) }
+func (m levelDbManager) SeekingWriter(params ...interface{}) SeekingWriter   { return m.open(false, params...) }
+func (m levelDbManager) ReadingDeleter(params ...interface{}) ReadingDeleter { return m.open(false, params...) }
+func (m levelDbManager) SeekingDeleter(params ...interface{}) SeekingDeleter { return m.open(false, params...) }
