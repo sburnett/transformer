@@ -30,6 +30,11 @@ func NewCsvStore(writer io.WriteCloser, keyColumnNames, valueColumnNames []strin
 	}
 }
 
+func NewCsvFile(filename string, keyColumnNames, valueColumnNames []string, columns ...interface{}) *CsvStore {
+	writer := NewLazyFileCreator(filename)
+	return NewCsvStore(writer, keyColumnNames, valueColumnNames, columns...)
+}
+
 func (store *CsvStore) BeginWriting() error {
 	store.csvWriter = csv.NewWriter(store.writer)
 	if err := store.csvWriter.Write(append(store.keyColumnNames, store.valueColumnNames...)); err != nil {
@@ -77,9 +82,7 @@ func (dirname csvFileManager) open(params ...interface{}) *CsvStore {
 	columns := params[3:]
 
 	filename := filepath.Join(string(dirname), basename)
-	writer := NewLazyFileCreator(filename)
-
-	return NewCsvStore(writer, keyColumnNames, valueColumnNames, columns...)
+	return NewCsvFile(filename, keyColumnNames, valueColumnNames, columns...)
 }
 
 func (m csvFileManager) Reader(params ...interface{}) Reader                 { panic("Unimplemented") }
