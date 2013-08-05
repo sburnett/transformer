@@ -60,3 +60,50 @@ func ExampleSliceStore_seek() {
 	// d: y
 	// e: x
 }
+
+func ExampleSliceStoreManager() {
+	manager := NewSliceManager()
+
+	firstStore := manager.Writer("store")
+	secondStore := manager.Writer("store")
+	thirdStore := manager.Writer("another")
+
+	firstStore.BeginWriting()
+	firstStore.WriteRecord(NewRecord("hello", "world", 0))
+	firstStore.EndWriting()
+
+	secondStore.BeginWriting()
+	secondStore.WriteRecord(NewRecord("test", "record", 0))
+	secondStore.EndWriting()
+
+	thirdStore.BeginWriting()
+	thirdStore.WriteRecord(NewRecord("another", "test", 0))
+	thirdStore.EndWriting()
+
+	for _, name := range []string{"store", "another"} {
+		fmt.Printf("Records from %s:\n", name)
+		backingStore := manager.GetSlice(name)
+		backingStore.BeginReading()
+		for {
+			record, err := backingStore.ReadRecord()
+			if err != nil {
+				panic(err)
+			}
+			if record == nil {
+				break
+			}
+			fmt.Printf("%s: %s\n", record.Key, record.Value)
+		}
+		backingStore.EndReading()
+		fmt.Println()
+	}
+
+	// Output:
+	//
+	// Records from store:
+	// hello: world
+	// test: record
+	//
+	// Records from another:
+	// another: test
+}

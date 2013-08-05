@@ -3,6 +3,7 @@ package store
 import (
 	"expvar"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/jmhodges/levigo"
@@ -173,3 +174,27 @@ func (store *LevelDbStore) DeleteAllRecords() error {
 	}
 	return nil
 }
+
+type levelDbManager string
+
+func NewLevelDbManager(dbRoot string) Manager {
+	return levelDbManager(dbRoot)
+}
+
+func (dirname levelDbManager) open(params ...interface{}) *LevelDbStore {
+	if len(params) != 1 {
+		panic(fmt.Errorf("NewLevelDbStore accepts a single argument. the path of the store"))
+	}
+	basename := params[0].(string)
+	filename := filepath.Join(string(dirname), basename)
+	return NewLevelDbStore(filename)
+}
+
+func (m levelDbManager) Reader(params ...interface{}) Reader                 { return m.open(params...) }
+func (m levelDbManager) Writer(params ...interface{}) Writer                 { return m.open(params...) }
+func (m levelDbManager) Seeker(params ...interface{}) Seeker                 { return m.open(params...) }
+func (m levelDbManager) Deleter(params ...interface{}) Deleter               { return m.open(params...) }
+func (m levelDbManager) ReadingWriter(params ...interface{}) ReadingWriter   { return m.open(params...) }
+func (m levelDbManager) SeekingWriter(params ...interface{}) SeekingWriter   { return m.open(params...) }
+func (m levelDbManager) ReadingDeleter(params ...interface{}) ReadingDeleter { return m.open(params...) }
+func (m levelDbManager) SeekingDeleter(params ...interface{}) SeekingDeleter { return m.open(params...) }

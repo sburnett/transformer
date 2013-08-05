@@ -53,3 +53,14 @@ type SeekingDeleter interface {
 	Seeker
 	Deleter
 }
+
+type Manager interface {
+	Reader(...interface{}) Reader
+	Writer(...interface{}) Writer
+	Seeker(...interface{}) Seeker
+	Deleter(...interface{}) Deleter
+	ReadingWriter(...interface{}) ReadingWriter
+	SeekingWriter(...interface{}) SeekingWriter
+	ReadingDeleter(...interface{}) ReadingDeleter
+	SeekingDeleter(...interface{}) SeekingDeleter
+}

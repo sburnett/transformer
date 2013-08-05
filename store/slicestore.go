@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"sort"
 )
@@ -86,3 +87,37 @@ func (store *SliceStore) Print() {
 		log.Printf("%s: %s (%v: %v)", record.Key, record.Value, record.Key, record.Value)
 	}
 }
+
+type SliceManager struct {
+	slices map[string]*SliceStore
+}
+
+func NewSliceManager() *SliceManager {
+	return &SliceManager{
+		slices: make(map[string]*SliceStore),
+	}
+}
+
+func (manager SliceManager) GetSlice(name string) *SliceStore {
+	return manager.slices[name]
+}
+
+func (manager SliceManager) open(params ...interface{}) *SliceStore {
+	if len(params) < 1 {
+		panic(fmt.Errorf("SliceStore requires at least one argument"))
+	}
+	name := params[0].(string)
+	if _, ok := manager.slices[name]; !ok {
+		manager.slices[name] = &SliceStore{}
+	}
+	return manager.slices[name]
+}
+
+func (m SliceManager) Reader(params ...interface{}) Reader                 { return m.open(params...) }
+func (m SliceManager) Writer(params ...interface{}) Writer                 { return m.open(params...) }
+func (m SliceManager) Seeker(params ...interface{}) Seeker                 { return m.open(params...) }
+func (m SliceManager) Deleter(params ...interface{}) Deleter               { return m.open(params...) }
+func (m SliceManager) ReadingWriter(params ...interface{}) ReadingWriter   { return m.open(params...) }
+func (m SliceManager) SeekingWriter(params ...interface{}) SeekingWriter   { return m.open(params...) }
+func (m SliceManager) ReadingDeleter(params ...interface{}) ReadingDeleter { return m.open(params...) }
+func (m SliceManager) SeekingDeleter(params ...interface{}) SeekingDeleter { return m.open(params...) }
