@@ -54,6 +54,16 @@ type SeekingDeleter interface {
 	Deleter
 }
 
+// A Manager is an interface for creating stores.
+//
+// The arguments to each creator usually get passed to the store's constructor.
+// Typically, a manager manages all stores in a directory. For examples,
+// NewLevelDbManager creates multiple LevelDB databases inside a single parent
+// directory using NewLevelDbStore.
+//
+// This interface exists to give pipielines an interface with which they can
+// access multiple stores, without your needing to pass those stores to the
+// pipeline individually.
 type Manager interface {
 	Reader(...interface{}) Reader
 	Writer(...interface{}) Writer

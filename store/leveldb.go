@@ -179,6 +179,10 @@ func (store *LevelDbStore) DeleteAllRecords() error {
 
 type levelDbManager string
 
+// Manage a set of LevelDB databases in the provided directory.
+//
+// The LevelDB constructor methods for the returned Manager take a single
+// parameter, the name of a LevelDB inside the dbRoot.
 func NewLevelDbManager(dbRoot string) Manager {
 	return levelDbManager(dbRoot)
 }

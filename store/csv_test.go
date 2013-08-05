@@ -51,7 +51,7 @@ func ExampleCsvStore_write() {
 	// Thomas,Jefferson,Democratic-Republican,1743
 }
 
-func ExampleCsvFileManager() {
+func ExampleNewCsvFileManager() {
 	csvPath, err := ioutil.TempDir("", "transformer-csv-manager-test")
 	if err != nil {
 		panic(err)

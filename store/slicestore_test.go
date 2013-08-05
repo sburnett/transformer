@@ -61,7 +61,7 @@ func ExampleSliceStore_seek() {
 	// e: x
 }
 
-func ExampleSliceStoreManager() {
+func ExampleSliceManager() {
 	manager := NewSliceManager()
 
 	firstStore := manager.Writer("store")
