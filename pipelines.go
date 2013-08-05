@@ -79,7 +79,7 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 	}
 	pipeline := pipelineFunc(dbRoot, *workers)
 	if *listStages {
-		fmt.Fprintln(os.Stderr, strings.Join(pipeline.StageNames(), ", "))
+		fmt.Fprintln(os.Stderr, strings.Join(pipeline.StageNames(), "\n"))
 		os.Exit(0)
 	}
 	if len(*runOnly) > 0 {
@@ -96,7 +96,7 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 			}
 			if !foundStage {
 				fmt.Fprintf(os.Stderr, "Invalid stage in pipeline %s\n", pipelineName)
-				fmt.Fprintf(os.Stderr, "Possible stages: %s\n", strings.Join(pipeline.StageNames(), ", "))
+				fmt.Fprintf(os.Stderr, "Possible stages:\n  %s\n", strings.Join(pipeline.StageNames(), "\n  "))
 				os.Exit(1)
 			}
 		}
@@ -112,7 +112,7 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 			}
 		}
 		fmt.Fprintf(os.Stderr, "Invalid stage in pipeline %s\n", pipelineName)
-		fmt.Fprintf(os.Stderr, "Possible stages: %s\n", strings.Join(pipeline.StageNames(), ", "))
+		fmt.Fprintf(os.Stderr, "Possible stages:\n  %s\n", strings.Join(pipeline.StageNames(), "\n  "))
 		os.Exit(1)
 	}
 	return pipelineName, pipeline
