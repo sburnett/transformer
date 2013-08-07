@@ -196,11 +196,19 @@ func (dirname levelDbManager) open(readOnly bool, params ...interface{}) *LevelD
 	return NewLevelDbStore(filename, readOnly)
 }
 
-func (m levelDbManager) Reader(params ...interface{}) Reader                 { return m.open(true, params...) }
-func (m levelDbManager) Writer(params ...interface{}) Writer                 { return m.open(false, params...) }
-func (m levelDbManager) Seeker(params ...interface{}) Seeker                 { return m.open(true, params...) }
-func (m levelDbManager) Deleter(params ...interface{}) Deleter               { return m.open(false, params...) }
-func (m levelDbManager) ReadingWriter(params ...interface{}) ReadingWriter   { return m.open(false, params...) }
-func (m levelDbManager) SeekingWriter(params ...interface{}) SeekingWriter   { return m.open(false, params...) }
-func (m levelDbManager) ReadingDeleter(params ...interface{}) ReadingDeleter { return m.open(false, params...) }
-func (m levelDbManager) SeekingDeleter(params ...interface{}) SeekingDeleter { return m.open(false, params...) }
+func (m levelDbManager) Reader(params ...interface{}) Reader   { return m.open(true, params...) }
+func (m levelDbManager) Writer(params ...interface{}) Writer   { return m.open(false, params...) }
+func (m levelDbManager) Seeker(params ...interface{}) Seeker   { return m.open(true, params...) }
+func (m levelDbManager) Deleter(params ...interface{}) Deleter { return m.open(false, params...) }
+func (m levelDbManager) ReadingWriter(params ...interface{}) ReadingWriter {
+	return m.open(false, params...)
+}
+func (m levelDbManager) SeekingWriter(params ...interface{}) SeekingWriter {
+	return m.open(false, params...)
+}
+func (m levelDbManager) ReadingDeleter(params ...interface{}) ReadingDeleter {
+	return m.open(false, params...)
+}
+func (m levelDbManager) SeekingDeleter(params ...interface{}) SeekingDeleter {
+	return m.open(false, params...)
+}
