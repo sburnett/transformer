@@ -23,7 +23,7 @@ func ExampleJoin_inner() {
 	output := store.SliceStore{}
 
 	joiner := Join(nil, nil)
-	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner, 1), store.NewDemuxingReader(&left, &right), &output)
+	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner), store.NewDemuxingReader(&left, &right), &output)
 
 	output.BeginReading()
 	for {
@@ -59,7 +59,7 @@ func ExampleJoin_left() {
 	output := store.SliceStore{}
 
 	joiner := Join(nil, []byte("shelf"))
-	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner, 1), store.NewDemuxingReader(&left, &right), &output)
+	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner), store.NewDemuxingReader(&left, &right), &output)
 
 	output.BeginReading()
 	for {
@@ -96,7 +96,7 @@ func ExampleJoin_right() {
 	output := store.SliceStore{}
 
 	joiner := Join([]byte("tooth"), nil)
-	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner, 1), store.NewDemuxingReader(&left, &right), &output)
+	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner), store.NewDemuxingReader(&left, &right), &output)
 
 	output.BeginReading()
 	for {
@@ -133,7 +133,7 @@ func ExampleJoin_outer() {
 	output := store.SliceStore{}
 
 	joiner := Join([]byte("tooth"), []byte("shelf"))
-	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner, 1), store.NewDemuxingReader(&left, &right), &output)
+	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner), store.NewDemuxingReader(&left, &right), &output)
 
 	output.BeginReading()
 	for {
@@ -177,7 +177,7 @@ func ExampleJoin_multiple() {
 	output := store.SliceStore{}
 
 	joiner := Join([]byte("never"), []byte("paper"), []byte("man"))
-	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner, 1), store.NewDemuxingReader(&left, &middle, &right), &output)
+	transformer.RunTransformer(transformer.MakeGroupDoFunc(joiner), store.NewDemuxingReader(&left, &middle, &right), &output)
 
 	output.BeginReading()
 	for {
