@@ -11,8 +11,17 @@ import (
 
 var workers int
 
+func maxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
+}
+
 func init() {
-	cores := runtime.NumCPU()
+	cores := maxParallelism()
 	flag.IntVar(&workers, "workers", 2*cores, "Number of worker threads for mappers.")
 }
 
