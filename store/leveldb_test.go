@@ -13,7 +13,7 @@ func ExampleLevelDbStore_readWrite() {
 		panic(err)
 	}
 
-	store := NewLevelDbStore(dbPath, false)
+	store := NewLevelDbStore(dbPath, LevelDbReadWrite)
 
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func ExampleLevelDbStore_seek() {
 		panic(err)
 	}
 
-	store := NewLevelDbStore(dbPath, false)
+	store := NewLevelDbStore(dbPath, LevelDbReadWrite)
 
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
@@ -121,7 +121,7 @@ func ExampleLevelDbStore_deleteAll() {
 		panic(err)
 	}
 
-	store := NewLevelDbStore(dbPath, false)
+	store := NewLevelDbStore(dbPath, LevelDbReadWrite)
 
 	if err := store.BeginWriting(); err != nil {
 		panic(err)
