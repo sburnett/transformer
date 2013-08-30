@@ -2,9 +2,25 @@ package transformer
 
 import (
 	"bytes"
+	"flag"
+	"fmt"
+	"runtime"
 
 	"github.com/sburnett/transformer/store"
 )
+
+var workers int
+
+func init() {
+	cores := runtime.NumCPU()
+	flag.IntVar(&workers, "workers", 2*cores, "Number of worker threads for mappers.")
+}
+
+// Restricts the maximum number of concurrent workers to one, which forces
+// predictable unit test output for Mappers and Doers.
+func RestrictWorkersForTests() {
+	workers = 1
+}
 
 // Map each input record to 0 or 1 output records. This is the simplest and most
 // efficient kind of transformer.
@@ -60,18 +76,21 @@ type MultipleOutputsGroupDoer interface {
 }
 
 // Turn a Mapper into a Transformer.
-func MakeMapTransformer(mapper Mapper, numConcurrent int) Transformer {
+func MakeMapTransformer(mapper Mapper) Transformer {
 	doFunc := func(inputRecord *store.Record, outputChan chan *store.Record) {
 		outputChan <- mapper.Map(inputRecord)
 	}
-	return MakeDoFunc(doFunc, numConcurrent)
+	return MakeDoFunc(doFunc)
 }
 
 // Turn a Doer into a Transformer.
-func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
+func MakeDoTransformer(doer Doer) Transformer {
+	if !flag.Parsed() {
+		panic(fmt.Errorf("flags must be parsed"))
+	}
 	return TransformFunc(func(inputChan, outputChan chan *store.Record) {
 		doneChan := make(chan bool)
-		for i := 0; i < numConcurrent; i++ {
+		for i := 0; i < workers; i++ {
 			go func() {
 				for record := range inputChan {
 					doer.Do(record, outputChan)
@@ -79,14 +98,14 @@ func MakeDoTransformer(doer Doer, numConcurrent int) Transformer {
 				doneChan <- true
 			}()
 		}
-		for i := 0; i < numConcurrent; i++ {
+		for i := 0; i < workers; i++ {
 			<-doneChan
 		}
 	})
 }
 
 // Turn a MultpleOutputsDoer into a Transformer.
-func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numConcurrent int) Transformer {
+func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs int) Transformer {
 	doFunc := func(inputRecord *store.Record, outputChan chan *store.Record) {
 		outputChans := make([]chan *store.Record, numOutputs, numOutputs)
 		doneChan := make(chan bool)
@@ -110,15 +129,18 @@ func MakeMultipleOutputsDoTransformer(doer MultipleOutputsDoer, numOutputs, numC
 			<-doneChan
 		}
 	}
-	return MakeDoFunc(doFunc, numConcurrent)
+	return MakeDoFunc(doFunc)
 }
 
 // Turn a GroupDoer into a Transformer.
-func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
+func MakeGroupDoTransformer(doer GroupDoer) Transformer {
+	if !flag.Parsed() {
+		panic(fmt.Errorf("flags must be parsed"))
+	}
 	return TransformFunc(func(inputChan, outputChan chan *store.Record) {
 		doneChan := make(chan bool)
 		groupedInputsChan := make(chan []*store.Record)
-		for i := 0; i < numConcurrent; i++ {
+		for i := 0; i < workers; i++ {
 			go func() {
 				for record := range groupedInputsChan {
 					doer.GroupDo(record, outputChan)
@@ -143,14 +165,14 @@ func MakeGroupDoTransformer(doer GroupDoer, numConcurrent int) Transformer {
 			groupedInputsChan <- currentRecords
 		}
 		close(groupedInputsChan)
-		for i := 0; i < numConcurrent; i++ {
+		for i := 0; i < workers; i++ {
 			<-doneChan
 		}
 	})
 }
 
 // Turn a MultipleOutputsGroupDoer into a Transformer.
-func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOutputs, numConcurrent int) Transformer {
+func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOutputs int) Transformer {
 	groupDoFunc := func(inputRecords []*store.Record, outputChan chan *store.Record) {
 		outputChans := make([]chan *store.Record, numOutputs, numOutputs)
 		doneChan := make(chan bool)
@@ -172,7 +194,7 @@ func MakeMultipleOutputsGroupDoTransformer(doer MultipleOutputsGroupDoer, numOut
 			<-doneChan
 		}
 	}
-	return MakeGroupDoFunc(groupDoFunc, numConcurrent)
+	return MakeGroupDoFunc(groupDoFunc)
 }
 
 type TransformFunc func(inputChan, outputChan chan *store.Record)
@@ -212,26 +234,26 @@ func (multipleOutputsGroupDoFunc MultipleOutputsGroupDoFunc) GroupDoToMultipleOu
 }
 
 // Turn a MapFunc into a Transformer.
-func MakeMapFunc(mapperFunc MapFunc, numConcurrent int) Transformer {
-	return MakeMapTransformer(MapFunc(mapperFunc), numConcurrent)
+func MakeMapFunc(mapperFunc MapFunc) Transformer {
+	return MakeMapTransformer(MapFunc(mapperFunc))
 }
 
 // Turn a DoFunc into a Transformer.
-func MakeDoFunc(doFunc DoFunc, numConcurrent int) Transformer {
-	return MakeDoTransformer(DoFunc(doFunc), numConcurrent)
+func MakeDoFunc(doFunc DoFunc) Transformer {
+	return MakeDoTransformer(DoFunc(doFunc))
 }
 
 // Turn a MultipleOutputsDoFunc into a Transformer.
-func MakeMultipleOutputsDoFunc(multiDoFunc MultipleOutputsDoFunc, numOutputs, numConcurrent int) Transformer {
-	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoFunc), numOutputs, numConcurrent)
+func MakeMultipleOutputsDoFunc(multiDoFunc MultipleOutputsDoFunc, numOutputs int) Transformer {
+	return MakeMultipleOutputsDoTransformer(MultipleOutputsDoFunc(multiDoFunc), numOutputs)
 }
 
 // Turn GroupDoFunc into a Transformer.
-func MakeGroupDoFunc(doFunc GroupDoFunc, numConcurrent int) Transformer {
-	return MakeGroupDoTransformer(GroupDoFunc(doFunc), numConcurrent)
+func MakeGroupDoFunc(doFunc GroupDoFunc) Transformer {
+	return MakeGroupDoTransformer(GroupDoFunc(doFunc))
 }
 
 // Turn a MultipleOutputsGroupDoFunc into a Transformer.
-func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc MultipleOutputsGroupDoFunc, numOutputs, numConcurrent int) Transformer {
-	return MakeMultipleOutputsGroupDoTransformer(MultipleOutputsGroupDoFunc(multiGroupDoFunc), numOutputs, numConcurrent)
+func MakeMultipleOutputsGroupDoFunc(multiGroupDoFunc MultipleOutputsGroupDoFunc, numOutputs int) Transformer {
+	return MakeMultipleOutputsGroupDoTransformer(MultipleOutputsGroupDoFunc(multiGroupDoFunc), numOutputs)
 }

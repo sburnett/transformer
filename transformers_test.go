@@ -7,13 +7,17 @@ import (
 	"github.com/sburnett/transformer/store"
 )
 
+func init() {
+	RestrictWorkersForTests()
+}
+
 func ExampleMapper() {
 	mapper := MakeMapFunc(func(inputRecord *store.Record) *store.Record {
 		return &store.Record{
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(",")),
 		}
-	}, 1)
+	})
 
 	inputChan := make(chan *store.Record, 3)
 	inputChan <- store.NewRecord("a", "b", 0)
@@ -46,7 +50,7 @@ func ExampleDoer() {
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 		}
-	}, 1)
+	})
 
 	inputChan := make(chan *store.Record, 3)
 	inputChan <- store.NewRecord("a", "b", 0)
@@ -82,7 +86,7 @@ func ExampleMultipleOutputsDoer() {
 			Key:   inputRecord.Key,
 			Value: bytes.Join([][]byte{inputRecord.Value, inputRecord.Value}, []byte(";")),
 		}
-	}, 2, 1)
+	}, 2)
 
 	inputChan := make(chan *store.Record, 3)
 	inputChan <- store.NewRecord("a", "b", 0)
@@ -124,7 +128,7 @@ func ExampleGroupDoer() {
 				}
 			}
 		}
-	}, 1)
+	})
 
 	inputChan := make(chan *store.Record, 4)
 	inputChan <- store.NewRecord("a", "b", 0)
@@ -173,7 +177,7 @@ func ExampleMultipleOutputsGroupDoer() {
 				}
 			}
 		}
-	}, 2, 1)
+	}, 2)
 
 	inputChan := make(chan *store.Record, 3)
 	inputChan <- store.NewRecord("a", "b", 0)

@@ -41,12 +41,11 @@ func init() {
 	currentStage = expvar.NewString("CurrentStage")
 }
 
-type PipelineFunc func(dbRoot string, workers int) Pipeline
+type PipelineThunk func() Pipeline
 
 // Convenience function to parse command line arguments, figure out which
 // pipeline to run and configure that pipeline to run.
-func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipeline) {
-	workers := flag.Int("workers", 4, "Number of worker threads for mappers.")
+func ParsePipelineChoice(pipelineThunks map[string]PipelineThunk) (string, Pipeline) {
 	runOnly := flag.String("run_only", "", "Comma separated list of stages to run.")
 	runAfter := flag.String("run_from", "", "Run this stage and all stages following it.")
 	listStages := flag.Bool("list_stages", false, "List the stages in the pipeline and exit.")
@@ -56,7 +55,7 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 		flag.PrintDefaults()
 		fmt.Fprintln(os.Stderr, " <database root> is a directory where we store multiple LevelDB databases.")
 		var pipelineNames []string
-		for name := range pipelineFuncs {
+		for name := range pipelineThunks {
 			pipelineNames = append(pipelineNames, name)
 		}
 		sort.Strings(pipelineNames)
@@ -68,16 +67,15 @@ func ParsePipelineChoice(pipelineFuncs map[string]PipelineFunc) (string, Pipelin
 		flag.Usage()
 		os.Exit(1)
 	}
-	dbRoot := flag.Arg(0)
-	pipelineName := flag.Arg(1)
+	pipelineName := flag.Arg(0)
 
-	pipelineFunc, ok := pipelineFuncs[pipelineName]
+	pipelineThunk, ok := pipelineThunks[pipelineName]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "Invalid pipeline!\n\n")
 		flag.Usage()
 		os.Exit(1)
 	}
-	pipeline := pipelineFunc(dbRoot, *workers)
+	pipeline := pipelineThunk()
 	if *listStages {
 		fmt.Fprintln(os.Stderr, strings.Join(pipeline.StageNames(), "\n"))
 		os.Exit(0)
