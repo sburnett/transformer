@@ -50,10 +50,9 @@ func ParsePipelineChoice(pipelineThunks map[string]PipelineThunk) (string, Pipel
 	runAfter := flag.String("run_from", "", "Run this stage and all stages following it.")
 	listStages := flag.Bool("list_stages", false, "List the stages in the pipeline and exit.")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s [global flags] <database root> <pipeline> [pipeline flags]:\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage of %s [global flags] <pipeline> [pipeline flags]:\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, " [global flags] can be:")
 		flag.PrintDefaults()
-		fmt.Fprintln(os.Stderr, " <database root> is a directory where we store multiple LevelDB databases.")
 		var pipelineNames []string
 		for name := range pipelineThunks {
 			pipelineNames = append(pipelineNames, name)
@@ -63,7 +62,7 @@ func ParsePipelineChoice(pipelineThunks map[string]PipelineThunk) (string, Pipel
 		fmt.Fprintln(os.Stderr, " Pass '-help' to a pipeline to see [pipeline flags]")
 	}
 	flag.Parse()
-	if flag.NArg() < 2 {
+	if flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(1)
 	}
