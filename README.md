@@ -14,8 +14,7 @@ See http://godoc.org/github.com/sburnett/transformer for documentation.
 
 Examples written using the framework:
 - https://github.com/sburnett/transformer-diagnostics
-- https://github.com/sburnett/bismark-health-processing
 - https://github.com/sburnett/bismark-passive-server-go
-- https://github.com/sburnett/bismark-uploads-stats
+- https://github.com/sburnett/bismark-tools
 
 [![Build Status](https://travis-ci.org/sburnett/transformer.png)](https://travis-ci.org/sburnett/transformer)
